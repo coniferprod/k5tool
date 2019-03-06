@@ -1,0 +1,20 @@
+PODS:
+  - BinarySwift (0.9.5)
+  - Bitter (3.1.1)
+
+DEPENDENCIES:
+  - BinarySwift
+  - Bitter
+
+SPEC REPOS:
+  https://github.com/cocoapods/specs.git:
+    - BinarySwift
+    - Bitter
+
+SPEC CHECKSUMS:
+  BinarySwift: 80268ffb18d7a96d7831b7c0fee82936e5176e84
+  Bitter: 9a6aa16f2c4e4303720c441108581b27c400ec27
+
+PODFILE CHECKSUM: cca08bdf5770ef70f94ca79fcbcc4093b2860b03
+
+COCOAPODS: 1.5.3

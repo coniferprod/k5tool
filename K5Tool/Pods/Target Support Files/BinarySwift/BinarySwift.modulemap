@@ -1,0 +1,6 @@
+framework module BinarySwift {
+  umbrella header "BinarySwift-umbrella.h"
+
+  export *
+  module * { export * }
+}
