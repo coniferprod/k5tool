@@ -9,8 +9,8 @@
 /* Begin PBXBuildFile section */
 		52785FDE87886758CEA32382 /* Pods_K5ToolTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8306F7E19E81C437F4F1F824 /* Pods_K5ToolTests.framework */; };
 		92BB11FF5370063F2D02D05B /* Pods_K5ToolUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A938D551A22BC16216C2C075 /* Pods_K5ToolUITests.framework */; };
+		CF271B3522B319BF001FF557 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF271B3422B319BF001FF557 /* Utilities.swift */; };
 		CF71507C2219D5E400077C59 /* Single.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF71507B2219D5E400077C59 /* Single.swift */; };
-		CF9E18C4221F1EA2003E3565 /* EnvelopeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9E18C3221F1EA2003E3565 /* EnvelopeView.swift */; };
 		CFB9E2992219D20900D9387C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB9E2982219D20900D9387C /* AppDelegate.swift */; };
 		CFB9E29B2219D20900D9387C /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB9E29A2219D20900D9387C /* ViewController.swift */; };
 		CFB9E29D2219D20900D9387C /* Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB9E29C2219D20900D9387C /* Document.swift */; };
@@ -51,8 +51,8 @@
 		86012CEAED1D8A257E3F1C36 /* Pods-K5ToolUITests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-K5ToolUITests.release.xcconfig"; path = "Pods/Target Support Files/Pods-K5ToolUITests/Pods-K5ToolUITests.release.xcconfig"; sourceTree = "<group>"; };
 		A938D551A22BC16216C2C075 /* Pods_K5ToolUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_K5ToolUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF6EAE260455CEFA00A313F3 /* Pods-K5Tool.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-K5Tool.release.xcconfig"; path = "Pods/Target Support Files/Pods-K5Tool/Pods-K5Tool.release.xcconfig"; sourceTree = "<group>"; };
+		CF271B3422B319BF001FF557 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		CF71507B2219D5E400077C59 /* Single.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Single.swift; sourceTree = "<group>"; };
-		CF9E18C3221F1EA2003E3565 /* EnvelopeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeView.swift; sourceTree = "<group>"; };
 		CFB9E2952219D20900D9387C /* K5Tool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = K5Tool.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CFB9E2982219D20900D9387C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		CFB9E29A2219D20900D9387C /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -144,7 +144,7 @@
 				CFB9E2A42219D21300D9387C /* K5Tool.entitlements */,
 				CF71507B2219D5E400077C59 /* Single.swift */,
 				CFFD7152221A97C300425304 /* TestData.swift */,
-				CF9E18C3221F1EA2003E3565 /* EnvelopeView.swift */,
+				CF271B3422B319BF001FF557 /* Utilities.swift */,
 			);
 			path = K5Tool;
 			sourceTree = "<group>";
@@ -393,9 +393,9 @@
 			files = (
 				CFB9E29B2219D20900D9387C /* ViewController.swift in Sources */,
 				CF71507C2219D5E400077C59 /* Single.swift in Sources */,
+				CF271B3522B319BF001FF557 /* Utilities.swift in Sources */,
 				CFB9E2992219D20900D9387C /* AppDelegate.swift in Sources */,
 				CFFD7153221A97C300425304 /* TestData.swift in Sources */,
-				CF9E18C4221F1EA2003E3565 /* EnvelopeView.swift in Sources */,
 				CFB9E29D2219D20900D9387C /* Document.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
