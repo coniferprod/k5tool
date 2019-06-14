@@ -48,7 +48,6 @@ class ViewController: NSViewController {
         print(columnString("name", a.name, b.name))
         print(columnString("volume", a.volume, b.volume))
         print(columnString("balance", a.balance, b.balance))
-        
     }
 
     override var representedObject: Any? {
@@ -56,18 +55,4 @@ class ViewController: NSViewController {
         // Update the view, if already loaded.
         }
     }
-
-
 }
-
-extension String {
-    func leftPadding(toLength: Int, withPad character: Character) -> String {
-        let stringLength = self.count
-        if stringLength < toLength {
-            return String(repeatElement(character, count: toLength - stringLength)) + self
-        } else {
-            return String(self.suffix(toLength))
-        }
-    }
-}
-

@@ -10,6 +10,7 @@
 		52785FDE87886758CEA32382 /* Pods_K5ToolTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8306F7E19E81C437F4F1F824 /* Pods_K5ToolTests.framework */; };
 		92BB11FF5370063F2D02D05B /* Pods_K5ToolUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A938D551A22BC16216C2C075 /* Pods_K5ToolUITests.framework */; };
 		CF271B3522B319BF001FF557 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF271B3422B319BF001FF557 /* Utilities.swift */; };
+		CF271B3722B31E70001FF557 /* Waveforms.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF271B3622B31E70001FF557 /* Waveforms.swift */; };
 		CF71507C2219D5E400077C59 /* Single.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF71507B2219D5E400077C59 /* Single.swift */; };
 		CFB9E2992219D20900D9387C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB9E2982219D20900D9387C /* AppDelegate.swift */; };
 		CFB9E29B2219D20900D9387C /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB9E29A2219D20900D9387C /* ViewController.swift */; };
@@ -52,6 +53,7 @@
 		A938D551A22BC16216C2C075 /* Pods_K5ToolUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_K5ToolUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF6EAE260455CEFA00A313F3 /* Pods-K5Tool.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-K5Tool.release.xcconfig"; path = "Pods/Target Support Files/Pods-K5Tool/Pods-K5Tool.release.xcconfig"; sourceTree = "<group>"; };
 		CF271B3422B319BF001FF557 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
+		CF271B3622B31E70001FF557 /* Waveforms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Waveforms.swift; sourceTree = "<group>"; };
 		CF71507B2219D5E400077C59 /* Single.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Single.swift; sourceTree = "<group>"; };
 		CFB9E2952219D20900D9387C /* K5Tool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = K5Tool.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CFB9E2982219D20900D9387C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -145,6 +147,7 @@
 				CF71507B2219D5E400077C59 /* Single.swift */,
 				CFFD7152221A97C300425304 /* TestData.swift */,
 				CF271B3422B319BF001FF557 /* Utilities.swift */,
+				CF271B3622B31E70001FF557 /* Waveforms.swift */,
 			);
 			path = K5Tool;
 			sourceTree = "<group>";
@@ -392,6 +395,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CFB9E29B2219D20900D9387C /* ViewController.swift in Sources */,
+				CF271B3722B31E70001FF557 /* Waveforms.swift in Sources */,
 				CF71507C2219D5E400077C59 /* Single.swift in Sources */,
 				CF271B3522B319BF001FF557 /* Utilities.swift in Sources */,
 				CFB9E2992219D20900D9387C /* AppDelegate.swift in Sources */,
