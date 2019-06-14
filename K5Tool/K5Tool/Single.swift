@@ -102,10 +102,10 @@ struct LFO {
     
     func emit() -> Data {
         return Data([
-            UInt8(self.shape.rawValue),
-            UInt8(self.speed),
-            UInt8(self.delay),
-            UInt8(self.trend)
+            Byte(self.shape.rawValue),
+            Byte(self.speed),
+            Byte(self.delay),
+            Byte(self.trend)
         ])
     }
 }
@@ -145,7 +145,7 @@ struct Formant {
                 levelValue = levelValue.setb7(self.isActive ? 1 : 0)
             }
             
-            d += [UInt8(levelValue)]
+            d += [Byte(levelValue)]
         }
         
         return d
@@ -159,7 +159,7 @@ enum ModulationAssign: Int {
     case slope = 3
     case off = 4
     
-    static func fromByte(_ b: UInt8) -> ModulationAssign {
+    static func fromByte(_ b: Byte) -> ModulationAssign {
         var result: ModulationAssign = .off
         switch b {
         case 0:
@@ -247,9 +247,9 @@ struct KeyScaling {
     func emit() -> Data {
         var d = Data()
         d += [
-            UInt8(bitPattern: Int8(self.right)),
-            UInt8(bitPattern: Int8(self.left)),
-            UInt8(self.breakpoint)
+            Byte(bitPattern: Int8(self.right)),
+            Byte(bitPattern: Int8(self.left)),
+            Byte(self.breakpoint)
         ]
         return d
     }
@@ -439,7 +439,7 @@ struct Source {
         //print("Harmonics:")
 
         // First handle harmonics 1...62. They are packed two to a byte.
-        var harmData = [UInt8]()
+        var harmData = [Byte]()
         var count = 0
         while count < 31 {  // two harmonics per byte
             byteValue = d[offset]
@@ -809,27 +809,27 @@ struct Source {
         
         // coarse and fine
         d += [
-            UInt8(bitPattern: Int8(self.coarse)),
-            UInt8(bitPattern: Int8(self.fine))
+            Byte(bitPattern: Int8(self.coarse)),
+            Byte(bitPattern: Int8(self.fine))
         ]
         
-        var keyTrackingValue: UInt8 = 0
+        var keyTrackingValue: Byte = 0
         switch self.keyTracking {
         case .track:
             keyTrackingValue = 0
         case .fix(let key):
-            keyTrackingValue = UInt8(key)
+            keyTrackingValue = Byte(key)
             keyTrackingValue = keyTrackingValue.setb7(1)
         }
         d += [keyTrackingValue]
         
         d += [
-            UInt8(bitPattern: Int8(self.envelopeDepth)),
-            UInt8(bitPattern: Int8(self.pressureDepth)),
-            UInt8(bitPattern: Int8(self.benderDepth)),
-            UInt8(bitPattern: Int8(self.velocityEnvelopeDepth)),
-            UInt8(self.lfoDepth),
-            UInt8(bitPattern: Int8(self.pressureLFODepth))
+            Byte(bitPattern: Int8(self.envelopeDepth)),
+            Byte(bitPattern: Int8(self.pressureDepth)),
+            Byte(bitPattern: Int8(self.benderDepth)),
+            Byte(bitPattern: Int8(self.velocityEnvelopeDepth)),
+            Byte(self.lfoDepth),
+            Byte(bitPattern: Int8(self.pressureLFODepth))
         ]
         
         // DFG envelope
@@ -838,11 +838,11 @@ struct Source {
             if index == 0 && self.envelopeLooping {
                 rateValue = rateValue.setb7(1)
             }
-            d += [UInt8(rateValue)]
+            d += [Byte(rateValue)]
         }
         
         for segment in self.envelope.segments {
-            d += [UInt8(bitPattern: Int8(segment.level))]
+            d += [Byte(bitPattern: Int8(segment.level))]
         }
         print("after DFG envelope, have \(d.count) bytes")
         
@@ -850,13 +850,13 @@ struct Source {
         // DHG
         //
         for h in self.harmonics {
-            d += [UInt8(h.level)]
+            d += [Byte(h.level)]
         }
         print("after DHG levels, have \(d.count) bytes")
         
         var isActive = false
         var number = 0
-        var harmValue: UInt8 = 0
+        var harmValue: Byte = 0
         
         // First handle harmonics 1...62. They are packed two to a byte.
         var harmNum = 0
@@ -864,11 +864,11 @@ struct Source {
         while byteCount < 31 {
             let h1 = self.harmonics[harmNum]
             harmNum += 1
-            var value = UInt8(h1.envelopeNumber)
+            var value = Byte(h1.envelopeNumber)
             value = value.setb3(h1.isModulationActive ? 1 : 0)
             let h2 = self.harmonics[harmNum]
             harmNum += 1
-            value = value | (UInt8(h2.envelopeNumber) << 4)
+            value = value | (Byte(h2.envelopeNumber) << 4)
             value = value.setb7(h2.isModulationActive ? 1 : 0)
             byteCount += 1
             d += [value]
@@ -878,22 +878,22 @@ struct Source {
         let harm = self.harmonics[62]
         isActive = harm.isModulationActive
         number = harm.envelopeNumber
-        harmValue = UInt8(number)
+        harmValue = Byte(number)
         if isActive {
             harmValue = harmValue.setb3(1)
         }
-        d += [UInt8(harmValue)]
+        d += [Byte(harmValue)]
         
         // Duplicate the 63rd harmonic for now (see SysEx parser for details)
-        d += [UInt8(harmValue)]
+        d += [Byte(harmValue)]
         print("after DHG harmonic selection, have \(d.count) bytes")
         
         let harmSet = self.harmonicSettings
         d += [
-            UInt8(bitPattern: Int8(harmSet.velocityDepth)),
-            UInt8(bitPattern: Int8(harmSet.pressureDepth)),
-            UInt8(bitPattern: Int8(harmSet.keyScalingDepth)),
-            UInt8(harmSet.lfoDepth)
+            Byte(bitPattern: Int8(harmSet.velocityDepth)),
+            Byte(bitPattern: Int8(harmSet.pressureDepth)),
+            Byte(bitPattern: Int8(harmSet.keyScalingDepth)),
+            Byte(harmSet.lfoDepth)
         ]
         print("after DHG harmonic settings, have \(d.count) bytes")
 
@@ -901,41 +901,41 @@ struct Source {
             print("HE\(hi): active = \(he.isActive), eff = \(he.effect)")
             var effectValue = he.effect
             effectValue = effectValue.setb7(he.isActive ? 1 : 0)
-            d += [UInt8(effectValue)]
+            d += [Byte(effectValue)]
         }
         print("after DHG harmonic envelope settings, have \(d.count) bytes")
 
         // harmonic modulation
         isActive = harmSet.isModulationActive
-        var harmSel = UInt8(harmSet.selection.rawValue)
+        var harmSel = Byte(harmSet.selection.rawValue)
         harmSel = harmSel.setb7(isActive ? 1 : 0)
-        d += [UInt8(harmSel)]
+        d += [Byte(harmSel)]
         
         d += [
-            UInt8(harmSet.rangeFrom),
-            UInt8(harmSet.rangeTo)
+            Byte(harmSet.rangeFrom),
+            Byte(harmSet.rangeTo)
         ]
         
         // Harmonic envelope selections = 0/1, 1/2, 2/3, 3/4
-        harmSel = UInt8(harmSet.odd.envelopeNumber - 1) << 4
+        harmSel = Byte(harmSet.odd.envelopeNumber - 1) << 4
         harmSel = harmSel.setb7(harmSet.odd.isOn ? 1 : 0)
-        harmSel = harmSel | UInt8(harmSet.even.envelopeNumber - 1)
+        harmSel = harmSel | Byte(harmSet.even.envelopeNumber - 1)
         harmSel = harmSel.setb3(harmSet.even.isOn ? 1 : 0)
-        d += [UInt8(harmSel)]
+        d += [Byte(harmSel)]
         
-        harmSel = UInt8(harmSet.octave.envelopeNumber - 1) << 4
+        harmSel = Byte(harmSet.octave.envelopeNumber - 1) << 4
         harmSel = harmSel.setb7(harmSet.octave.isOn ? 1 : 0)
-        harmSel = harmSel | UInt8(harmSet.fifth.envelopeNumber - 1)
+        harmSel = harmSel | Byte(harmSet.fifth.envelopeNumber - 1)
         harmSel = harmSel.setb3(harmSet.fifth.isOn ? 1 : 0)
-        d += [UInt8(harmSel)]
+        d += [Byte(harmSel)]
         
-        harmSel = UInt8(harmSet.all.envelopeNumber - 1) << 4
+        harmSel = Byte(harmSet.all.envelopeNumber - 1) << 4
         harmSel = harmSel.setb7(harmSet.all.isOn ? 1 : 0)
-        d += [UInt8(harmSel)]
+        d += [Byte(harmSel)]
         
         d += [
-            UInt8(harmSet.angle),
-            UInt8(harmSet.number)
+            Byte(harmSet.angle),
+            Byte(harmSet.number)
         ]
         print("after harmonic settings, have \(d.count) bytes")
         
@@ -952,30 +952,30 @@ struct Source {
                     levelValue = levelValue.setb7(harmSet.isShadowOn ? 1 : 0)
                 }
                 
-                d += [UInt8(levelValue)]
+                d += [Byte(levelValue)]
             }
             
             for (si, seg) in segments.enumerated() {
                 print("env\(ei + 1) seg \(si + 1) rate \(seg.rate)")
-                d += [UInt8(seg.rate)]
+                d += [Byte(seg.rate)]
             }
         }
         print("after harmonic envelopes, have \(d.count) bytes")
         
         d += [
-            UInt8(self.filter.cutoff),
-            UInt8(self.filter.cutoffModulation),
-            UInt8(self.filter.slope),
-            UInt8(self.filter.slopeModulation),
-            UInt8(self.filter.flatLevel),
-            UInt8(bitPattern: Int8(self.filter.velocityDepth)),
-            UInt8(bitPattern: Int8(self.filter.pressureDepth)),
-            UInt8(bitPattern: Int8(self.filter.keyScalingDepth)),
-            UInt8(bitPattern: Int8(self.filter.envelopeDepth)),
-            UInt8(bitPattern: Int8(self.filter.velocityEnvelopeDepth))
+            Byte(self.filter.cutoff),
+            Byte(self.filter.cutoffModulation),
+            Byte(self.filter.slope),
+            Byte(self.filter.slopeModulation),
+            Byte(self.filter.flatLevel),
+            Byte(bitPattern: Int8(self.filter.velocityDepth)),
+            Byte(bitPattern: Int8(self.filter.pressureDepth)),
+            Byte(bitPattern: Int8(self.filter.keyScalingDepth)),
+            Byte(bitPattern: Int8(self.filter.envelopeDepth)),
+            Byte(bitPattern: Int8(self.filter.velocityEnvelopeDepth))
         ]
         
-        var filterValue = UInt8(self.filter.lfoDepth)
+        var filterValue = Byte(self.filter.lfoDepth)
         filterValue = filterValue.setb7(self.filter.isActive ? 1 : 0)
         filterValue = filterValue.setb6(self.filter.isModulationActive ? 1 : 0)
         d += [filterValue]
@@ -983,14 +983,14 @@ struct Source {
         // Filter envelope
         for (si, seg) in self.filterEnvelope.segments.enumerated() {
             print("f.env. seg \(si + 1) rate \(seg.rate)")
-            d += [UInt8(seg.rate)]
+            d += [Byte(seg.rate)]
         }
         
         for (si, seg) in self.filterEnvelope.segments.enumerated() {
             var levelValue = seg.level
             levelValue = levelValue.setb6(seg.isMax ? 1 : 0)
             print("flt env seg \(si + 1) level \(seg.level) isMax=\(seg.isMax)")
-            d += [UInt8(levelValue)]
+            d += [Byte(levelValue)]
         }
 
         print("after filter, have \(d.count) bytes")
@@ -998,19 +998,19 @@ struct Source {
         let amp = self.amplifier
         
         d += [
-            UInt8(bitPattern: Int8(amp.attackVelocityDepth)),
-            UInt8(bitPattern: Int8(amp.pressureDepth)),
-            UInt8(bitPattern: Int8(amp.keyScalingDepth))
+            Byte(bitPattern: Int8(amp.attackVelocityDepth)),
+            Byte(bitPattern: Int8(amp.pressureDepth)),
+            Byte(bitPattern: Int8(amp.keyScalingDepth))
         ]
         
         var lfoDepthValue = amp.lfoDepth
         lfoDepthValue = lfoDepthValue.setb7(amp.isActive ? 1 : 0)
-        d += [UInt8(lfoDepthValue)]
+        d += [Byte(lfoDepthValue)]
         
         d += [
-            UInt8(bitPattern: Int8(amp.attackVelocityRate)),
-            UInt8(bitPattern: Int8(amp.releaseVelocityRate)),
-            UInt8(bitPattern: Int8(amp.keyScalingRate)),
+            Byte(bitPattern: Int8(amp.attackVelocityRate)),
+            Byte(bitPattern: Int8(amp.releaseVelocityRate)),
+            Byte(bitPattern: Int8(amp.keyScalingRate)),
         ]
         
         // Amp envelope. N.B. This envelope has seven rates but only six levels
@@ -1018,7 +1018,7 @@ struct Source {
             var rateValue = seg.rate
             rateValue = rateValue.setb6(seg.isMod ? 1 : 0)
             print("amp env seg \(si + 1) rate \(seg.rate) mod=\(seg.isMod)")
-            d += [UInt8(seg.rate)]
+            d += [Byte(seg.rate)]
         }
         
         for (si, seg) in amp.envelope.segments.enumerated() {
@@ -1026,11 +1026,11 @@ struct Source {
             levelValue = levelValue.setb6(seg.isMax ? 1 : 0)
             if si == 6 {
                 print("no level for amp env seg 7")
-                d += [UInt8(0)]
+                d += [Byte(0)]
             }
             else {
                 print("amp env seg \(si + 1) level \(seg.level) isMaxSeg=\(seg.isMax)")
-                d += [UInt8(levelValue)]
+                d += [Byte(levelValue)]
             }
         }
 
@@ -1308,7 +1308,7 @@ struct Single {
         var d = Data()
         
         for value in self.name.ascii {
-            d += [UInt8(value)]
+            d += [Byte(value)]
         }
 
         return d
@@ -1319,16 +1319,16 @@ struct Single {
         
         d += emitName()
         d += [
-            UInt8(self.volume),
-            UInt8(bitPattern: Int8(self.balance)),
-            UInt8(self.source1Delay),
-            UInt8(self.source2Delay),
-            UInt8(bitPattern: Int8(self.source1PedalDepth)),
-            UInt8(bitPattern: Int8(self.source2PedalDepth)),
-            UInt8(bitPattern: Int8(self.source1WheelDepth)),
-            UInt8(bitPattern: Int8(self.source2WheelDepth)),
-            UInt8(self.source1PedalAssign.rawValue) << 4 | UInt8(self.source1WheelAssign.rawValue),
-            UInt8(self.source2PedalAssign.rawValue) << 4 | UInt8(self.source2WheelAssign.rawValue)
+            Byte(self.volume),
+            Byte(bitPattern: Int8(self.balance)),
+            Byte(self.source1Delay),
+            Byte(self.source2Delay),
+            Byte(bitPattern: Int8(self.source1PedalDepth)),
+            Byte(bitPattern: Int8(self.source2PedalDepth)),
+            Byte(bitPattern: Int8(self.source1WheelDepth)),
+            Byte(bitPattern: Int8(self.source2WheelDepth)),
+            Byte(self.source1PedalAssign.rawValue) << 4 | Byte(self.source1WheelAssign.rawValue),
+            Byte(self.source2PedalAssign.rawValue) << 4 | Byte(self.source2WheelAssign.rawValue)
         ]
 
         // We have a choice of emitting the SysEx values in order,
@@ -1338,14 +1338,14 @@ struct Single {
         // cruise along and emit, without maintaining offsets.
         
         // portamento and p. speed
-        var portamentoByteValue = UInt8(self.portamentoSpeed)
+        var portamentoByteValue = Byte(self.portamentoSpeed)
         if self.portamento {
             portamentoByteValue = portamentoByteValue.setb7(1)
         }
         d += [portamentoByteValue]
         
         // source mode and "pic mode" (whatever that is)
-        let modeValue = UInt8(self.picMode.rawValue) | (UInt8(self.mode.rawValue) << 2)
+        let modeValue = Byte(self.picMode.rawValue) | (Byte(self.mode.rawValue) << 2)
         d += [modeValue]
 
         //print("before source, have \(d.count) bytes")
@@ -1375,13 +1375,13 @@ struct Single {
         d += self.formant.emit()
         //print("after formant, have \(d.count) bytes")
         
-        d += [UInt8(0)]  // S490
+        d += [Byte(0)]  // S490
         
         // emit checksum
         let sum = checksum(data: d)
         d += [
-            UInt8(sum & 0xFF),
-            UInt8((sum >> 8) & 0xFF)
+            Byte(sum & 0xFF),
+            Byte((sum >> 8) & 0xFF)
         ]
         let sumString = String(format: "%04X", sum)
         print("checksum = \(sumString)")
