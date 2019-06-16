@@ -28,3 +28,28 @@ type Source struct {
 	Harmonics         [64]Harmonic
 	HarmonicEnvelopes [6]Envelope
 }
+
+type SourceSettings struct {
+	Delay       uint8 // 0~31
+	PedalDepth  uint8 // 0~31
+	WheelDepth  uint8 // 0~31
+	PedalAssign ModulationAssign
+	WheelAssign ModulationAssign
+}
+
+type ModulationAssign uint8
+
+const (
+	DFGLFO ModulationAssign = 0
+	DHG    ModulationAssign = 1
+	Cutoff ModulationAssign = 2
+	Slope  ModulationAssign = 3
+	Off    ModulationAssign = 4
+)
+
+type SourceMode uint8
+
+const (
+	Twin SourceMode = 0
+	Full SourceMode = 1
+)
