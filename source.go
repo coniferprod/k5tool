@@ -619,6 +619,87 @@ func (s Source) GenerateData() []byte {
 	d = append(d, s.HarmonicSettings.Angle, s.HarmonicSettings.Number)
 
 	// Harmonic envelopes
+	for ei := 0; ei < len(s.HarmonicEnvelopes); ei++ {
+		for si := 0; si < len(s.HarmonicEnvelopes[ei].Segments); si++ {
+			levelValue := s.HarmonicEnvelopes[ei].Segments[si].Level
+			if s.HarmonicEnvelopes[ei].Segments[si].IsMax {
+				levelValue = SetBits(levelValue, F6)
+			}
+
+			// Handle special case in first value
+			if ei == 0 && si == 0 {
+				if s.HarmonicSettings.IsShadowOn {
+					levelValue = SetBits(levelValue, F7)
+				}
+			}
+
+			d = append(d, levelValue)
+		}
+
+		for si := 0; si < len(s.HarmonicEnvelopes[ei].Segments); si++ {
+			d = append(d, s.HarmonicEnvelopes[ei].Segments[si].Rate)
+		}
+	}
+
+	// The filter
+	d = append(d, s.Filter.Cutoff, s.Filter.CutoffModulation, s.Filter.Slope, s.Filter.SlopeModulation, s.Filter.FlatLevel)
+	d = append(d, byte(s.Filter.VelocityDepth), byte(s.Filter.PressureDepth), byte(s.Filter.KeyScalingDepth), byte(s.Filter.EnvelopeDepth), byte(s.Filter.VelocityEnvelopeDepth))
+
+	filterValue := s.Filter.LFODepth
+	if s.Filter.IsActive {
+		filterValue = SetBits(filterValue, F7)
+	}
+	if s.Filter.IsModulationActive {
+		filterValue = SetBits(filterValue, F6)
+	}
+	d = append(d, filterValue)
+
+	// Filter envelope
+	for i := 0; i < len(s.FilterEnvelope.Segments); i++ {
+		d = append(d, s.FilterEnvelope.Segments[i].Rate)
+	}
+
+	for i := 0; i < len(s.FilterEnvelope.Segments); i++ {
+		levelValue := s.FilterEnvelope.Segments[i].Level
+		if s.FilterEnvelope.Segments[i].IsMax {
+			levelValue = SetBits(levelValue, F6)
+		}
+		d = append(d, levelValue)
+	}
+
+	d = append(d, byte(s.Amplifier.AttackVelocityDepth), byte(s.Amplifier.PressureDepth), byte(s.Amplifier.KeyScalingDepth))
+
+	depthValue := s.Amplifier.LFODepth
+	if s.Amplifier.IsActive {
+		depthValue = SetBits(depthValue, F7)
+	}
+	d = append(d, depthValue)
+
+	d = append(d, byte(s.Amplifier.AttackVelocityRate), byte(s.Amplifier.ReleaseVelocityRate), byte(s.Amplifier.KeyScalingRate))
+
+	// Amp envelope. N.B. This envelope has seven rates but only six levels.
+	for i := 0; i < len(s.Amplifier.Envelope.Segments); i++ {
+		rateValue := s.Amplifier.Envelope.Segments[i].Rate
+		if s.Amplifier.Envelope.Segments[i].IsMod {
+			rateValue = SetBits(rateValue, F6)
+		}
+		d = append(d, rateValue)
+	}
+
+	for i := 0; i < len(s.Amplifier.Envelope.Segments); i++ {
+		levelValue := s.Amplifier.Envelope.Segments[i].Level
+		if s.Amplifier.Envelope.Segments[i].IsMax {
+			levelValue = SetBits(levelValue, F6)
+		}
+		if i == 6 {
+			// No level for amp env seg 7
+			d = append(d, byte(0))
+		} else {
+			d = append(d, levelValue)
+		}
+	}
+
+	// NOTE: Key scaling data is generated here, but in the Single.
 
 	return d
 }
