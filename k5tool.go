@@ -2,10 +2,12 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"text/template"
 )
 
 type SystemExclusiveHeader struct {
@@ -63,11 +65,26 @@ func main() {
 		//fmt.Println(hex.Dump(data))
 
 		single := NewSingle(data)
-		fmt.Printf("Name = '%s'\n", single.Name)
-		fmt.Printf("Volume = %d\n", single.Volume)
-		fmt.Printf("Balance = %d\n", single.Balance)
 
-		fmt.Println()
+		singleTemplate := template.New("Single")
+		singleTemplateText := `SINGLE
+Name = '{{.Name}}'
+Volume = {{.Volume}}
+Balance = {{.Balance}}
+        `
+		singleTemplate.Parse(singleTemplateText)
+		singleTemplate.Execute(os.Stdout, single)
+
+		j, err := json.Marshal(single)
+		if err != nil {
+			fmt.Println("Unable to serialize")
+		} else {
+			fmt.Printf("%v\n", string(j))
+		}
+
+		d := single.GenerateData()
+		fmt.Printf("generated data = %v\n", d)
+
 	}
 }
 
