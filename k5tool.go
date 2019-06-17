@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -45,14 +44,43 @@ func main() {
 			continue
 		}
 
+		header := getHeader(msg)
+		// Process only one block data dumps for now
+		if header.Function != 0x20 {
+			fmt.Println("Not a one block data dump (function = 20H), ignoring")
+			continue
+		}
+
+		if header.Substatus1 != 0x00 {
+			fmt.Println("Not a SINGLE dump, ignoring")
+			continue
+		}
+
 		originalData := msg[8 : len(msg)-1] // extract data after SysEx header and before end byte
 		//fmt.Println(hex.Dump(originalData))
 
 		data := NewByteSliceFromTwoNybbleRepresentation(originalData)
-		fmt.Println(hex.Dump(data))
+		//fmt.Println(hex.Dump(data))
 
+		single := NewSingle(data)
+		fmt.Printf("Name = '%s'\n", single.Name)
+		fmt.Printf("Volume = %d\n", single.Volume)
+		fmt.Printf("Balance = %d\n", single.Balance)
+
+		fmt.Println()
 	}
+}
 
+func getHeader(data []byte) SystemExclusiveHeader {
+	return SystemExclusiveHeader{
+		ManufacturerID: data[1],
+		Channel:        data[2],
+		Function:       data[3],
+		Group:          data[4],
+		MachineID:      data[5],
+		Substatus1:     data[6],
+		Substatus2:     data[7],
+	}
 }
 
 // Perform some checks on the SysEx file data.
@@ -83,9 +111,8 @@ func checkSysEx(data []byte) bool {
 	if header.ManufacturerID != 0x40 {
 		fmt.Printf("Not a Kawai SysEx file; manufacturer ID should be 40H (found %02xH)\n", header.ManufacturerID)
 		return false
-	} else {
-		fmt.Printf("%02xH Manufacturer ID = Kawai\n", header.ManufacturerID)
 	}
+	fmt.Printf("%02xH Manufacturer ID = Kawai\n", header.ManufacturerID)
 
 	fmt.Printf("%02xH Channel = %d\n", header.Channel, header.Channel+1)
 
@@ -108,9 +135,8 @@ func checkSysEx(data []byte) bool {
 	if header.MachineID != 0x02 {
 		fmt.Printf("Not a Kawai K5 SysEx file; machine ID should be 02H (found %02xH)\n", header.MachineID)
 		return false
-	} else {
-		fmt.Printf("%02xH Machine ID = K5/K5m\n", header.MachineID)
 	}
+	fmt.Printf("%02xH Machine ID = K5/K5m\n", header.MachineID)
 
 	substatus1Names := map[byte]string{
 		0x00: "SINGLE",

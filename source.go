@@ -150,3 +150,9 @@ const (
 	Twin SourceMode = 0
 	Full SourceMode = 1
 )
+
+func NewSource(d []byte) *Source {
+	s := new(Source)
+
+	return s
+}
