@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -62,7 +63,7 @@ func main() {
 		//fmt.Println(hex.Dump(originalData))
 
 		data := NewByteSliceFromTwoNybbleRepresentation(originalData)
-		//fmt.Println(hex.Dump(data))
+		fmt.Println(hex.Dump(data))
 
 		single := NewSingle(data)
 
@@ -71,7 +72,7 @@ func main() {
 Name = '{{.Name}}'
 Volume = {{.Volume}}
 Balance = {{.Balance}}
-        `
+`
 		singleTemplate.Parse(singleTemplateText)
 		singleTemplate.Execute(os.Stdout, single)
 
@@ -79,12 +80,30 @@ Balance = {{.Balance}}
 		if err != nil {
 			fmt.Println("Unable to serialize")
 		} else {
-			fmt.Printf("%v\n", string(j))
+			//fmt.Printf("%v\n", string(j))
+			fmt.Printf("JSON length = %d\n", len(j))
 		}
 
 		d := single.GenerateData()
-		fmt.Printf("generated data = %v\n", d)
+		fmt.Printf("generated %d bytes of data:\n", len(d))
+		fmt.Println(hex.Dump(d))
 
+		// Compare the original and generated data
+		result := bytes.Compare(data, d)
+		if result != 0 {
+			fmt.Println("Original and generated data don't quite match...")
+		}
+
+		sourceTemplate := template.New("Source")
+		const sourceTemplateText = `SOURCE:
+Coarse = {{.Coarse}}
+Fine = {{.Fine}}
+`
+		sourceTemplate.Parse(sourceTemplateText)
+		sourceTemplate.Execute(os.Stdout, single.Source1)
+
+		// For testing, only process the first single patch:
+		break
 	}
 }
 

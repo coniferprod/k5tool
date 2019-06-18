@@ -93,13 +93,14 @@ func NewSingle(d []byte) *Single {
 	b, offset = getNextByte(d, offset) // S10
 	s.Balance = int8(b)
 
-	// Source 1 and source 2 settings
+	// Source 1 and source 2 settings.
+	// Note that the pedal assign and the wheel assign for one source are in the same byte
 	s.Source1Settings = SourceSettings{
 		Delay:       d[offset],                     // S11
 		PedalDepth:  d[offset+2],                   // S13
 		WheelDepth:  d[offset+4],                   // S15
 		PedalAssign: ModulationAssign(d[offset+6]), // S17 high nybble
-		WheelAssign: ModulationAssign(d[offset+8]), // S17 low nybble
+		WheelAssign: ModulationAssign(d[offset+6]), // S17 low nybble
 	}
 
 	s.Source2Settings = SourceSettings{
@@ -107,7 +108,7 @@ func NewSingle(d []byte) *Single {
 		PedalDepth:  d[offset+3],                   // S14
 		WheelDepth:  d[offset+5],                   // S16
 		PedalAssign: ModulationAssign(d[offset+7]), // S18 high nybble
-		WheelAssign: ModulationAssign(d[offset+9]), // S18 low nybble
+		WheelAssign: ModulationAssign(d[offset+7]), // S18 low nybble
 	}
 
 	offset += 8
@@ -151,7 +152,14 @@ func NewSingle(d []byte) *Single {
 	}
 	fmt.Printf("s1 data = %d bytes, s2 data = %d bytes\n", len(s1d), len(s2d))
 
+	source1Data := []byte{}
+	source1Data = append(source1Data, d[0:20]...)
+	source1Data = append(source1Data, s1d...)
 	s.Source1 = *NewSource(s1d)
+
+	source2Data := []byte{}
+	source2Data = append(source2Data, d[0:20]...)
+	source2Data = append(source2Data, s1d...)
 	s.Source2 = *NewSource(s2d)
 
 	offset += len(sd)

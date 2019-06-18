@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Harmonic struct {
 	Level              uint8
@@ -172,38 +174,57 @@ func NewSource(d []byte) *Source {
 	fmt.Printf("NewSource: len(d) = %d\n", len(d))
 	s := new(Source)
 
-	offset := 0
+	offset := 20
+	r := offset + 1
 	b, offset := getNextByte(d, offset)
 	s.Coarse = int8(b)
+	fmt.Printf("S%d  %02x  coarse\n", r, b)
 
 	b, offset = getNextByte(d, offset)
 	s.Fine = int8(b)
+	r += 2
+	fmt.Printf("S%d  %02x  fine\n", r, b)
 
 	b, offset = getNextByte(d, offset)
 	if HasBit(b, F7) {
 		s.KeyTracking = Fixed
 		s.Key = b & 0x7f
+		fmt.Printf("key tracking is fixed to key %d\n", s.Key)
 	} else {
 		s.KeyTracking = Track
 		// Key is ignored in this case
 	}
+	r += 2
+	fmt.Printf("S%d  %02x  keytracking\n", r, b)
 
 	b, offset = getNextByte(d, offset)
+	r += 2
+	fmt.Printf("S%d  %02x  env depth\n", r, b)
 	s.EnvelopeDepth = int8(b)
 
 	b, offset = getNextByte(d, offset)
+	r += 2
+	fmt.Printf("S%d  %02x  press depth\n", r, b)
 	s.PressureDepth = int8(b)
 
 	b, offset = getNextByte(d, offset)
+	r += 2
+	fmt.Printf("S%d  %02x  bender depth\n", r, b)
 	s.BenderDepth = int8(b)
 
 	b, offset = getNextByte(d, offset)
+	r += 2
+	fmt.Printf("S%d  %02x  vel env depth\n", r, b)
 	s.VelocityEnvelopeDepth = int8(b)
 
 	b, offset = getNextByte(d, offset)
+	r += 2
+	fmt.Printf("S%d  %02x  LFO depth\n", r, b)
 	s.LFODepth = b
 
 	b, offset = getNextByte(d, offset)
+	r += 2
+	fmt.Printf("S%d  %02x  press LFO depth\n", r, b)
 	s.PressureLFODepth = int8(b)
 
 	segments := [6]EnvelopeSegment{
@@ -238,46 +259,42 @@ func NewSource(d []byte) *Source {
 		Segments: segments,
 	}
 
+	fmt.Printf("Before DHG, offset = %04XH, b = %02XH\n", offset, b)
+
 	// DHG
 	for i := 0; i < 63; i++ {
 		b, offset = getNextByte(d, offset)
 		s.Harmonics[i] = Harmonic{
 			Level: b,
 		}
+		//fmt.Printf("s.Harmonics[%d] = %02XH\n", i, b)
 	}
 
-	count := 0
-	for count < 62 {
-		if count%2 == 0 {
-			b, offset = getNextByte(d, offset)
-		}
-
-		odd := b & 0x0f // 0b00001111
-		even := (b & 0xf0) >> 4
-
-		s.Harmonics[count].IsModulationActive = HasBit(odd, F3)
-		s.Harmonics[count].EnvelopeNumber = odd & 0x03
-
-		s.Harmonics[count+1].IsModulationActive = HasBit(even, F3)
-		s.Harmonics[count+1].EnvelopeNumber = even & 0x03
-
-		count += 2
+	harmData := []byte{}
+	for count := 0; count < 31; count++ {
+		b, offset = getNextByte(d, offset)
+		harmData = append(harmData, b&0x0f) // 0b00001111
+		harmData = append(harmData, (b&0xf0)>>4)
+		count++
 	}
 
-	// It appears that the harm63 settings are duplicated in the SysEx manual:
-	// S251 and S252 have the same description. Need to investigate this more;
-	// in the meantime, just use the first one.
+	// S251 has only harm63 for S1, and S252 has only harm63 for S2
+	// (the others are packed two to a byte)
 	b, offset = getNextByte(d, offset)
-	odd := b & 0x0f // 0b00001111
-	//even := (b & 0xf0) >> 4
-	s.Harmonics[62].IsModulationActive = HasBit(odd, F3)
-	s.Harmonics[62].EnvelopeNumber = odd & 0x03
+	harmData = append(harmData, b&0x0f) // 0b00001111
+
+	// Now harmData should have all the 63 harmonics
+	for i := 0; i < len(harmData); i++ {
+		s.Harmonics[i].IsModulationActive = HasBit(harmData[i], F3)
+		s.Harmonics[i].EnvelopeNumber = harmData[i] & 0x03
+	}
 
 	// DHG harmonic settings
 	harmSet := HarmonicSettings{
 		EnvelopeSettings: [4]HarmonicEnvelopeSettings{},
 	}
 	b, offset = getNextByte(d, offset)
+	fmt.Printf("offset = %04XH, b = %02XH, harmSet.VelocityDepth = %02XH\n", offset, b, int8(b))
 	harmSet.VelocityDepth = int8(b)
 	b, offset = getNextByte(d, offset)
 	harmSet.PressureDepth = int8(b)
@@ -317,7 +334,7 @@ func NewSource(d []byte) *Source {
 	b, offset = getNextByte(d, offset)
 	harmSet.RangeTo = b
 
-	//fmt.Printf("before HE selections (S275), offset = %d (%04XH)\n", offset+20, offset+20)
+	fmt.Printf("Before HE selections (S275), offset = %d (%04XH)\n", offset, offset)
 
 	// Harmonic envelope selections = 0/1, 1/2, 2/3, 3/4
 	b, offset = getNextByte(d, offset)
@@ -361,6 +378,8 @@ func NewSource(d []byte) *Source {
 	// so back up the offset by one byte.
 	offset--
 
+	fmt.Printf("Before harmonic envelopes, offset = %d (%04XH)\n", offset, offset)
+
 	// Next, the harmonic envelopes (four of them):
 	envelopes := [4]Envelope{}
 
@@ -370,6 +389,7 @@ func NewSource(d []byte) *Source {
 		segmentIndex := 0
 		for segmentIndex < 6 {
 			b, offset = getNextByte(d, offset)
+			//fmt.Printf("ei = %d, si = %d, offset = %04XH, b = %02XH\n", envelopeIndex, segmentIndex, offset, b)
 			segments[segmentIndex].Level = b & 0x3f
 			segments[segmentIndex].IsMax = HasBit(b, F6)
 			segmentIndex++
@@ -387,8 +407,12 @@ func NewSource(d []byte) *Source {
 	}
 	s.HarmonicEnvelopes = envelopes
 
+	fmt.Printf("Before filter, offset = %d (%04XH)\n", offset, offset)
+
 	filter, offset := readFilter(d, offset)
 	s.Filter = filter
+
+	fmt.Printf("Before filter envelope, offset = %d (%04XH)\n", offset, offset)
 
 	// Filter envelope
 	filterEnvelopeSegments := [6]EnvelopeSegment{}
@@ -411,6 +435,8 @@ func NewSource(d []byte) *Source {
 		Segments: filterEnvelopeSegments,
 	}
 	s.FilterEnvelope = filterEnvelope
+
+	fmt.Printf("Before amplifier, offset = %d (%04XH)\n", offset, offset)
 
 	amplifier, offset := readAmplifier(d, offset)
 	s.Amplifier = amplifier
@@ -548,15 +574,19 @@ func (s Source) GenerateData() []byte {
 		if h1.IsModulationActive {
 			value = SetBits(value, F3)
 		}
+		fmt.Printf("H%d: IsModulationActive = %v, EnvelopeNumber = %d\n", harmNum, h1.IsModulationActive, h1.EnvelopeNumber)
 		h2 := s.Harmonics[harmNum]
 		harmNum++
 		value |= (h2.EnvelopeNumber << 4)
 		if h2.IsModulationActive {
 			value = SetBits(value, F7)
 		}
+		fmt.Printf("H%d: IsModulationActive = %v, EnvelopeNumber = %d\n", harmNum, h2.IsModulationActive, h2.EnvelopeNumber)
 		byteCount++
+		fmt.Printf("value = %02XH\n", value)
 		d = append(d, value)
 	}
+	fmt.Printf("byteCount = %d\n", byteCount)
 
 	// Handle the last harmonic (63rd)
 	harm := s.Harmonics[62]
@@ -564,9 +594,6 @@ func (s Source) GenerateData() []byte {
 	if harm.IsModulationActive {
 		harmValue = SetBits(harmValue, F3)
 	}
-	d = append(d, harmValue)
-
-	// Duplicate the 63rd harmonic for now (see parsing section for explanation)
 	d = append(d, harmValue)
 
 	d = append(d, byte(s.HarmonicSettings.VelocityDepth), byte(s.HarmonicSettings.PressureDepth), byte(s.HarmonicSettings.KeyScalingDepth))
