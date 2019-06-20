@@ -5,11 +5,15 @@
 /pkg/
 
 # Visual Studio Code
-.vscode/*
+.vscode/
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# .NET Core
+bin/
+obj/
 
 # Xcode
 #
