@@ -121,6 +121,7 @@ namespace k5tool
             byte[] sourceData = new byte[data.Length];
             int dataLength = data.Length - offset;
             Array.Copy(data, offset, sourceData, 0, dataLength);
+            System.Console.WriteLine($"Processed common settings of {offset} bytes");
             //System.Console.WriteLine(Util.HexDump(sourceData));
 
             // Separate S1 and S2 data. Even bytes are S1, odd bytes are S2.
@@ -133,11 +134,11 @@ namespace k5tool
                 s2d[dst] = sourceData[src + 1];
             }
 
-            System.Console.WriteLine("Source 1 data:");
+            System.Console.WriteLine(String.Format("Source 1 data ({0} bytes):", s1d.Length));
             System.Console.WriteLine(Util.HexDump(s1d));
             Source1 = new Source(s1d);
 
-            System.Console.WriteLine("Source 2 data:");
+            System.Console.WriteLine(String.Format("Source 2 data ({0} bytes):", s2d.Length));
             System.Console.WriteLine(Util.HexDump(s2d));
             Source2 = new Source(s2d);
         }

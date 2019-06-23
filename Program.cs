@@ -56,7 +56,8 @@ namespace k5tool
 
             foreach (byte[] message in messages)
             {
-                //System.Console.WriteLine(HexDump(message));
+                System.Console.WriteLine(String.Format("==========\nmessage length = {0}", message.Length));
+                //System.Console.WriteLine(Util.HexDump(message));
 
                 SystemExclusiveHeader header = GetSystemExclusiveHeader(message);
                 // TODO: Check the SysEx file header for validity
@@ -81,9 +82,11 @@ namespace k5tool
                 int dataLength = message.Length - SystemExclusiveHeaderLength;
                 byte[] rawData = new byte[dataLength];
                 Array.Copy(message, SystemExclusiveHeaderLength, rawData, 0, dataLength);
-                //System.Console.WriteLine(HexDump(rawData));
+                System.Console.WriteLine(String.Format("After SysEx header of {0} bytes, got {1} bytes of data.", SystemExclusiveHeaderLength, dataLength));
+                //System.Console.WriteLine(Util.HexDump(rawData));
                 
                 byte[] data = Util.ConvertFromTwoNybbleFormat(rawData);
+                System.Console.WriteLine(String.Format("Converted from two-nybble format, that makes {0} bytes:", data.Length));
                 System.Console.WriteLine(Util.HexDump(data));
 
                 Single s = new Single(data);

@@ -439,14 +439,18 @@ namespace k5tool
 
             // DHG
 
+            System.Console.WriteLine("Harmonic levels:");
             Harmonics = new Harmonic[HarmonicCount];
             for (int i = 0; i < HarmonicCount; i++)
             {
                 (b, offset) = Util.GetNextByte(data, offset);
                 Harmonics[i].Level = b;
-                System.Console.WriteLine(String.Format("HL {0} = {1:X}", i, b));
+                System.Console.Write(String.Format("{0}:{1:X} ", i, b));
             }
+            System.Console.WriteLine();
+            System.Console.WriteLine(String.Format("After harmonic levels, offset = {0}", offset));
 
+            System.Console.WriteLine("Harmonic modulation flags and envelope selections:");
             byte[] harmData = new byte[HarmonicCount];
             int index = 0;
 	        for (int count = 0; count < 31; count++) 
@@ -454,7 +458,7 @@ namespace k5tool
 		        (b, offset) = Util.GetNextByte(data, offset);
 		        harmData[index] = (byte)(b & 0x0f); // 0b00001111
                 index++;
-                System.Console.WriteLine(String.Format("{0} {1:X}", index, harmData[index]));
+                System.Console.WriteLine(String.Format("{0}:{1:X} ", index, harmData[index]));
 		        harmData[index] = (byte)((b&0xf0) >> 4);
                 index++;
                 System.Console.WriteLine(String.Format("{0} {1:X}", index, harmData[index]));
