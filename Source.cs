@@ -603,15 +603,15 @@ namespace k5tool
             (b, offset) = Util.GetNextByte(data, offset);
             Filter.FlatLevel = b;
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Filter.VelocityDepth = (sbyte)b;
+            Filter.VelocityDepth = b.ToSignedByte();
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Filter.PressureDepth = (sbyte)b;
+            Filter.PressureDepth = b.ToSignedByte();
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Filter.KeyScalingDepth = (sbyte)b;
+            Filter.KeyScalingDepth = b.ToSignedByte();
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Filter.EnvelopeDepth = (sbyte)b;
+            Filter.EnvelopeDepth = b.ToSignedByte();
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Filter.VelocityEnvelopeDepth = (sbyte)b;
+            Filter.VelocityEnvelopeDepth = b.ToSignedByte();
     	    (b, offset) = Util.GetNextByte(data, offset);
             Filter.IsActive = b.IsBitSet(7);
             Filter.IsModulationActive = b.IsBitSet(6);
@@ -632,26 +632,26 @@ namespace k5tool
 
             // DDA (S427 ... S468)
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Amplifier.AttackVelocityDepth = (sbyte)b;
+            Amplifier.AttackVelocityDepth = b.ToSignedByte();
             
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Amplifier.PressureDepth = (sbyte)b;
+            Amplifier.PressureDepth = b.ToSignedByte();
 
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Amplifier.KeyScalingDepth = (sbyte)b;
+            Amplifier.KeyScalingDepth = b.ToSignedByte();
 
     	    (b, offset) = Util.GetNextByte(data, offset);
             Amplifier.IsActive = b.IsBitSet(7);
             Amplifier.LFODepth = (byte)(b & 0x7f);
 
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Amplifier.AttackVelocityRate = (sbyte)b;
+            Amplifier.AttackVelocityRate = b.ToSignedByte();
 
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Amplifier.ReleaseVelocityRate = (sbyte)b;
+            Amplifier.ReleaseVelocityRate = b.ToSignedByte();
 
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Amplifier.KeyScalingRate = (sbyte)b;
+            Amplifier.KeyScalingRate = b.ToSignedByte();
 
             // Amplifier envelope segments:
             // Bit 7 is always zero, bit 6 is a boolean toggle, and bits 5...0 are the value
@@ -694,10 +694,10 @@ namespace k5tool
 
             // Keyscaling (S473 ... S478)
     	    (b, offset) = Util.GetNextByte(data, offset);
-            KeyScaling.Right = (sbyte)b;
+            KeyScaling.Right = b.ToSignedByte();
 
     	    (b, offset) = Util.GetNextByte(data, offset);
-            KeyScaling.Left = (sbyte)b;
+            KeyScaling.Left = b.ToSignedByte();
 
     	    (b, offset) = Util.GetNextByte(data, offset);
             KeyScaling.Breakpoint = b;
