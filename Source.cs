@@ -164,7 +164,7 @@ namespace k5tool
                 builder.Append("\n");
             }
             builder.Append("MAX  .... SHADOW=");
-            builder.Append(IsShadowOn ? "ON" : "OFF");
+            builder.Append(IsShadowOn ? "ON" : "--");
             builder.Append("\n\n");
 
             return builder.ToString();
@@ -327,29 +327,10 @@ namespace k5tool
         }
     }
     
-    public struct KeyScaling
-    {
-        public sbyte Right;
-        public sbyte Left;
-        public byte Breakpoint;
-
-        public override string ToString()
-        {
-            StringBuilder builder = new StringBuilder();
-
-            builder.Append("*KS CURVE*\n\n");
-            builder.Append(String.Format("LEFT={0,3}    B.POINT={1,3}    RIGHT={2,3}\n", Left, Right, Breakpoint));
-            builder.Append("\n\n");
-
-            return builder.ToString();
-        }
-    }
-
     public class Source
     {
         const int EnvelopeSegmentCount = 6;
         const int PitchEnvelopeSegmentCount = 6;
-        const int FormantLevelCount = 11;
         const int HarmonicCount = 63;
         public const int HarmonicEnvelopeCount = 4;
         public const int HarmonicEnvelopeSegmentCount = 6;
@@ -371,10 +352,6 @@ namespace k5tool
         public HarmonicSettings HarmonicSettings;
         public Filter Filter;
         public Amplifier Amplifier;
-        public LFO LFO;
-        public KeyScaling KeyScaling;
-        public bool IsFormantOn;  // true Digital Formant filter is on
-        public byte[] FormantLevels;  // levels for bands C-1 ... C9 (0 ~ 63)
 
         public Source(byte[] data)
         {
@@ -458,17 +435,16 @@ namespace k5tool
             while (count < HarmonicCount - 1)
             {
 		        (b, offset) = Util.GetNextByte(data, offset);
+                System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, b));
 		        harmData[count] = (byte)(b & 0x0f); // 0b00001111
-                System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, harmData[count]));
                 count++;
 		        harmData[count] = (byte)((b & 0xf0) >> 4);
-                System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, harmData[count]));
                 count++;
             }
 
 	        (b, offset) = Util.GetNextByte(data, offset);
 	        harmData[count] = (byte)(b & 0x0f); // 0b00001111
-            System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, harmData[count]));
+            System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, b));
             System.Console.WriteLine();
 
 	        // Now harmData should have all the 63 harmonics
@@ -572,6 +548,8 @@ namespace k5tool
 
             // Harmonic envelopes (S285 ... S380) - these were created earlier.
             // There are six segments for each of the four envelopes.
+            int harmonicEnvelopeDataCount = 0;
+            int desiredHarmonicEnvelopeDataCount = 6 * 4 * 2;  // 4 envs, 6 segs each, level + rate for each seg
             bool shadow = false;
             for (int ei = 0; ei < HarmonicEnvelopeCount; ei++)
             {
@@ -579,14 +557,27 @@ namespace k5tool
                 for (int si = 0; si < HarmonicEnvelopeSegmentCount; si++)
                 {
             	    (b, offset) = Util.GetNextByte(data, offset);
+                    System.Console.WriteLine(String.Format("b = {0:X2} offset = {1}", b, offset));
+                    harmonicEnvelopeDataCount++;
                     if (si == 0)
                     {
                         shadow = b.IsBitSet(7);
                     }
                     segments[si].IsMaxSegment = b.IsBitSet(6);
                     segments[si].Level = (byte)(b & 0x3f);
+
+                    (b, offset) = Util.GetNextByte(data, offset);
+                    System.Console.WriteLine(String.Format("b = {0:X2} offset = {1}", b, offset));
+                    harmonicEnvelopeDataCount++;
+                    segments[si].Rate = (byte)(b & 0x3f);
+
+                    System.Console.WriteLine(String.Format("env{0} seg{1} rate = {2} level = {3}{4}", ei + 1, si + 1, segments[si].Rate, segments[si].Level, segments[si].IsMaxSegment ? "*": ""));
                 }
                 harmSet.Envelopes[ei].Segments = segments;
+            }
+            if (harmonicEnvelopeDataCount != desiredHarmonicEnvelopeDataCount)
+            {
+                System.Console.WriteLine(String.Format("Should have {0} bytes of HE data, have {1}", desiredHarmonicEnvelopeDataCount, harmonicEnvelopeDataCount));
             }
             harmSet.IsShadowOn = shadow;
 
@@ -678,68 +669,13 @@ namespace k5tool
             //   S467 00000000 s1
             //   S468 00000000 s2
             // But we'll use them as the max setting and level for the 7th amp env segment.
-            // Not sure if this is an error in the spec, or my misinterpretation.
+            // Not sure if this is an error in the spec, or my misinterpretation (maybe the
+            // 7th segment doesn't have a level?)
 
-            // LFO (S469 ... S472)
-    	    (b, offset) = Util.GetNextByte(data, offset);
-            LFO.Shape = (LFOShape)b;
-
-    	    (b, offset) = Util.GetNextByte(data, offset);
-            LFO.Speed = b;
-
-            (b, offset) = Util.GetNextByte(data, offset);
-            LFO.Delay = b;
-
-    	    (b, offset) = Util.GetNextByte(data, offset);
-            LFO.Trend = b;
-
-            // Keyscaling (S473 ... S478)
-    	    (b, offset) = Util.GetNextByte(data, offset);
-            KeyScaling.Right = b.ToSignedByte();
-
-    	    (b, offset) = Util.GetNextByte(data, offset);
-            KeyScaling.Left = b.ToSignedByte();
-
-    	    (b, offset) = Util.GetNextByte(data, offset);
-            KeyScaling.Breakpoint = b;
-
-            // DFT (S479 ... S489)
-            FormantLevels = new byte[FormantLevelCount];
-            for (int i = 0; i < FormantLevelCount; i++)
-            {
-        	    (b, offset) = Util.GetNextByte(data, offset);
-                if (i == 0)
-                {
-                    IsFormantOn = b.IsBitSet(7);
-                    b.UnsetBit(7);  // in the first byte, the low seven bits have the level
-                }
-                FormantLevels[i] = b;
-            }
-
-            // S490 is unused (should be zero, but whatever), so eat it
-        	(b, offset) = Util.GetNextByte(data, offset);
-
-            // Checksum (S491 ... S492)
-        	(b, offset) = Util.GetNextByte(data, offset);
-            byte checksumLow = b;
-        	(b, offset) = Util.GetNextByte(data, offset);
-            byte checksumHigh = b;
         }
 
         public override string ToString()
         {
-            StringBuilder formantStringBuilder = new StringBuilder();
-            for (int i = 0; i < FormantLevelCount; i++)
-            {
-                formantStringBuilder.Append(String.Format("C{0} ", i - 1));
-            }
-            formantStringBuilder.Append("\n");
-            for (int i = 0; i < FormantLevelCount; i++)
-            {
-                formantStringBuilder.Append(String.Format("{0,3}", FormantLevels[i]));
-            }
-            formantStringBuilder.Append("\n");
-
             return 
                 String.Format("*DFG*              \n\n" +
                 "COARSE= {0,2}        <DEPTH>\n" + 
@@ -755,11 +691,7 @@ namespace k5tool
                 PitchEnvelope.ToString() +
                 HarmonicSettings.ToString() + 
                 Filter.ToString() +
-                Amplifier.ToString() + 
-                String.Format("\n*DFT*={0}\n\n{1}\n\n", 
-                    IsFormantOn ? "ON" : "--", formantStringBuilder.ToString()) +
-                LFO.ToString() +
-                KeyScaling.ToString();
+                Amplifier.ToString();
         }
     }
 }

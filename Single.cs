@@ -26,6 +26,24 @@ namespace k5tool
         Both
     }
 
+    public struct KeyScaling
+    {
+        public sbyte Right;
+        public sbyte Left;
+        public byte Breakpoint;
+
+        public override string ToString()
+        {
+            StringBuilder builder = new StringBuilder();
+
+            builder.Append("*KS CURVE*\n\n");
+            builder.Append(String.Format("LEFT={0,3}    B.POINT={1,3}    RIGHT={2,3}\n", Left, Right, Breakpoint));
+            builder.Append("\n\n");
+
+            return builder.ToString();
+        }
+    }
+
     public struct SourceSettings
     {
         public byte Delay; // 0~31
@@ -33,6 +51,7 @@ namespace k5tool
         public sbyte WheelDepth; // 0~±31
         public ModulationAssign PedalAssign;
         public ModulationAssign WheelAssign;
+        public KeyScaling KeyScaling;
 
         public override string ToString()
         {
@@ -42,6 +61,8 @@ namespace k5tool
 
     public class Single
     {
+        const int FormantLevelCount = 11;
+
         public string Name;
         public byte Volume;  // 0~63
         public sbyte Balance; // 0~±31
@@ -53,6 +74,9 @@ namespace k5tool
         public PicMode PMode;
         public Source Source1;
         public Source Source2;
+        public LFO LFO;
+        public bool IsFormantOn;  // true Digital Formant filter is on
+        public byte[] FormantLevels;  // levels for bands C-1 ... C9 (0 ~ 63)
 
         public Single(byte[] data)
         {
@@ -65,23 +89,33 @@ namespace k5tool
             (Volume, offset) = Util.GetNextByte(data, offset);  // S9
 
             (b, offset) = Util.GetNextByte(data, offset);
-            Balance = (sbyte)b; // S10
+            Balance = b.ToSignedByte(); // S10
 
             // Source 1 and Source 2 settings.
         	// Note that the pedal assign and the wheel assign for one source are in the same byte.
             SourceSettings s1s;
             s1s.Delay = data[offset];          // S11
-            s1s.PedalDepth = (sbyte)data[offset + 2]; // S13
-            s1s.WheelDepth = (sbyte)data[offset + 4]; // S15
+            s1s.PedalDepth = data[offset + 2].ToSignedByte(); // S13
+            s1s.WheelDepth = data[offset + 4].ToSignedByte(); // S15
             s1s.PedalAssign = (ModulationAssign)Util.HighNybble(data[offset + 6]); // S17 high nybble
             s1s.WheelAssign = (ModulationAssign)Util.LowNybble(data[offset + 6]); // S17 low nybble
+            s1s.KeyScaling = new KeyScaling {  // just a placeholder
+                Left = 0,
+                Right = 0,
+                Breakpoint = 0
+            };
 
             SourceSettings s2s;
             s2s.Delay = data[offset + 1];                           // S12
-            s2s.PedalDepth = (sbyte)data[offset + 3];               // S14
-            s2s.WheelDepth = (sbyte)data[offset + 5];               // S16
+            s2s.PedalDepth = data[offset + 3].ToSignedByte();               // S14
+            s2s.WheelDepth = data[offset + 5].ToSignedByte();               // S16
             s2s.PedalAssign = (ModulationAssign)Util.HighNybble(data[offset + 7]); // S18 high nybble
             s2s.WheelAssign = (ModulationAssign)Util.LowNybble(data[offset + 7]); // S18 low nybble
+            s2s.KeyScaling = new KeyScaling {  // just a placeholder
+                Left = 0,
+                Right = 0,
+                Breakpoint = 0
+            };
 
             Source1Settings = s1s;
             Source2Settings = s2s;
@@ -118,11 +152,13 @@ namespace k5tool
             // but the portamento and mode settings would have to be special cased.
             // So just copy everything past that, and use it as the source data.
 
-            byte[] sourceData = new byte[data.Length];
-            int dataLength = data.Length - offset;
+            System.Console.WriteLine($"Processed common settings of {offset} bytes. Data length = {data.Length} bytes.");
+
+            int dataLength = data.Length - (offset + FormantLevelCount + 1 + 2);
+            System.Console.WriteLine(String.Format("dataLength = {0}", dataLength));
+            byte[] sourceData = new byte[dataLength];
+            System.Console.WriteLine(String.Format("About to copy {0} bytes from data at {1} to sourceData at {2}", dataLength, offset, 0));
             Array.Copy(data, offset, sourceData, 0, dataLength);
-            System.Console.WriteLine($"Processed common settings of {offset} bytes");
-            //System.Console.WriteLine(Util.HexDump(sourceData));
 
             // Separate S1 and S2 data. Even bytes are S1, odd bytes are S2.
             // Note that this kind of assumes that the original data length is even.
@@ -141,6 +177,62 @@ namespace k5tool
             System.Console.WriteLine(String.Format("Source 2 data ({0} bytes):", s2d.Length));
             System.Console.WriteLine(Util.HexDump(s2d));
             Source2 = new Source(s2d);
+
+            offset = 468;
+
+            // LFO (S469 ... S472)
+    	    (b, offset) = Util.GetNextByte(data, offset);
+            LFO.Shape = (LFOShape)b;
+
+    	    (b, offset) = Util.GetNextByte(data, offset);
+            LFO.Speed = b;
+
+            (b, offset) = Util.GetNextByte(data, offset);
+            LFO.Delay = b;
+
+    	    (b, offset) = Util.GetNextByte(data, offset);
+            LFO.Trend = b;
+
+            // Keyscaling (S473 ... S478)
+    	    (b, offset) = Util.GetNextByte(data, offset);
+            s1s.KeyScaling.Right = b.ToSignedByte();
+
+    	    (b, offset) = Util.GetNextByte(data, offset);
+            s2s.KeyScaling.Right = b.ToSignedByte();
+
+    	    (b, offset) = Util.GetNextByte(data, offset);
+            s1s.KeyScaling.Left = b.ToSignedByte();
+
+    	    (b, offset) = Util.GetNextByte(data, offset);
+            s2s.KeyScaling.Left = b.ToSignedByte();
+
+    	    (b, offset) = Util.GetNextByte(data, offset);
+            s1s.KeyScaling.Breakpoint = b;
+
+    	    (b, offset) = Util.GetNextByte(data, offset);
+            s2s.KeyScaling.Breakpoint = b;
+
+            // DFT (S479 ... S489)
+            FormantLevels = new byte[FormantLevelCount];
+            for (int i = 0; i < FormantLevelCount; i++)
+            {
+        	    (b, offset) = Util.GetNextByte(data, offset);
+                if (i == 0)
+                {
+                    IsFormantOn = b.IsBitSet(7);
+                    b.UnsetBit(7);  // in the first byte, the low seven bits have the level
+                }
+                FormantLevels[i] = b;
+            }
+
+            // S490 is unused (should be zero, but whatever), so eat it
+        	(b, offset) = Util.GetNextByte(data, offset);
+
+            // Checksum (S491 ... S492)
+        	(b, offset) = Util.GetNextByte(data, offset);
+            byte checksumLow = b;
+        	(b, offset) = Util.GetNextByte(data, offset);
+            byte checksumHigh = b;
         }
 
         private string GetName(byte[] data, int offset)
@@ -163,12 +255,31 @@ namespace k5tool
             builder.Append(String.Format("P DEP| {0,3}  | {1,3}  |\n", Source1Settings.PedalDepth, Source2Settings.PedalDepth));;
             builder.Append(String.Format("WHEEL|{0}|{1}|\n", Source1Settings.WheelAssign, Source2Settings.WheelAssign));
             builder.Append(String.Format("W DEP| {0,2} | {1,2}  |\n", Source1Settings.WheelDepth, Source2Settings.WheelDepth));
+            builder.Append(Source1Settings.KeyScaling.ToString());
+            builder.Append(Source2Settings.KeyScaling.ToString());
 
             builder.Append("\n");
             builder.Append(Source1.ToString());
             builder.Append("\n");
             builder.Append(Source2.ToString());
             builder.Append("\n");
+
+            StringBuilder formantStringBuilder = new StringBuilder();
+            for (int i = 0; i < FormantLevelCount; i++)
+            {
+                formantStringBuilder.Append(String.Format("C{0} ", i - 1));
+            }
+            formantStringBuilder.Append("\n");
+            for (int i = 0; i < FormantLevelCount; i++)
+            {
+                formantStringBuilder.Append(String.Format("{0,3}", FormantLevels[i]));
+            }
+            formantStringBuilder.Append("\n");
+
+            builder.Append(LFO.ToString());
+
+            builder.Append(String.Format("\n*DFT*={0}\n\n{1}\n\n", 
+                    IsFormantOn ? "ON" : "--", formantStringBuilder.ToString()));
 
             return builder.ToString();
         }
