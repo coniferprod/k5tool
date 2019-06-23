@@ -445,33 +445,34 @@ namespace k5tool
             {
                 (b, offset) = Util.GetNextByte(data, offset);
                 Harmonics[i].Level = b;
-                System.Console.Write(String.Format("{0}:{1:X} ", i, b));
+                System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", i + 1, b));
             }
             System.Console.WriteLine();
             System.Console.WriteLine(String.Format("After harmonic levels, offset = {0}", offset));
 
             System.Console.WriteLine("Harmonic modulation flags and envelope selections:");
+            // The values are packed into 31 + 1 bytes. The first 31 bytes contain the settings
+            // for harmonics 1 to 62. The solitary byte that follows has the harm 63 settings.
             byte[] harmData = new byte[HarmonicCount];
-            int index = 0;
-	        for (int count = 0; count < 31; count++) 
+            int count = 0;
+            while (count < HarmonicCount - 1)
             {
 		        (b, offset) = Util.GetNextByte(data, offset);
-		        harmData[index] = (byte)(b & 0x0f); // 0b00001111
-                index++;
-                System.Console.WriteLine(String.Format("{0}:{1:X} ", index, harmData[index]));
-		        harmData[index] = (byte)((b&0xf0) >> 4);
-                index++;
-                System.Console.WriteLine(String.Format("{0} {1:X}", index, harmData[index]));
-		        count++;
-	        }
+		        harmData[count] = (byte)(b & 0x0f); // 0b00001111
+                System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, harmData[count]));
+                count++;
+		        harmData[count] = (byte)((b & 0xf0) >> 4);
+                System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, harmData[count]));
+                count++;
+            }
 
-	        // S251 has only harm63 for S1, and S252 has only harm63 for S2
-	        // (the others are packed two to a byte)
 	        (b, offset) = Util.GetNextByte(data, offset);
-	        harmData[index] = (byte)(b & 0x0f); // 0b00001111
+	        harmData[count] = (byte)(b & 0x0f); // 0b00001111
+            System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, harmData[count]));
+            System.Console.WriteLine();
 
 	        // Now harmData should have all the 63 harmonics
-	        for (int i = 0; i < harmData.Length; i++) 
+	        for (int i = 0; i < Harmonics.Length; i++) 
             {
 		        Harmonics[i].IsModulationActive = harmData[i].IsBitSet(3);
 		        Harmonics[i].EnvelopeNumber = (byte)(harmData[i] & 0x03);
