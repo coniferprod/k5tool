@@ -1,6 +1,0 @@
-framework module Pods_K5Tool {
-  umbrella header "Pods-K5Tool-umbrella.h"
-
-  export *
-  module * { export * }
-}

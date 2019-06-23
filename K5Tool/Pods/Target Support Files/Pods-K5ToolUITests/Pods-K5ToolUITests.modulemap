@@ -1,6 +1,0 @@
-framework module Pods_K5ToolUITests {
-  umbrella header "Pods-K5ToolUITests-umbrella.h"
-
-  export *
-  module * { export * }
-}
