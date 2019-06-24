@@ -152,12 +152,12 @@ namespace k5tool
             // but the portamento and mode settings would have to be special cased.
             // So just copy everything past that, and use it as the source data.
 
-            System.Console.WriteLine($"Processed common settings of {offset} bytes. Data length = {data.Length} bytes.");
+            //System.Console.WriteLine($"Processed common settings of {offset} bytes. Data length = {data.Length} bytes.");
 
             int dataLength = data.Length - (offset + FormantLevelCount + 1 + 2);
-            System.Console.WriteLine(String.Format("dataLength = {0}", dataLength));
+            //System.Console.WriteLine(String.Format("dataLength = {0}", dataLength));
             byte[] sourceData = new byte[dataLength];
-            System.Console.WriteLine(String.Format("About to copy {0} bytes from data at {1} to sourceData at {2}", dataLength, offset, 0));
+            //System.Console.WriteLine(String.Format("About to copy {0} bytes from data at {1} to sourceData at {2}", dataLength, offset, 0));
             Array.Copy(data, offset, sourceData, 0, dataLength);
 
             // Separate S1 and S2 data. Even bytes are S1, odd bytes are S2.
@@ -170,12 +170,12 @@ namespace k5tool
                 s2d[dst] = sourceData[src + 1];
             }
 
-            System.Console.WriteLine(String.Format("Source 1 data ({0} bytes):", s1d.Length));
-            System.Console.WriteLine(Util.HexDump(s1d));
+            //System.Console.WriteLine(String.Format("Source 1 data ({0} bytes):", s1d.Length));
+            //System.Console.WriteLine(Util.HexDump(s1d));
             Source1 = new Source(s1d);
 
-            System.Console.WriteLine(String.Format("Source 2 data ({0} bytes):", s2d.Length));
-            System.Console.WriteLine(Util.HexDump(s2d));
+            //System.Console.WriteLine(String.Format("Source 2 data ({0} bytes):", s2d.Length));
+            //System.Console.WriteLine(Util.HexDump(s2d));
             Source2 = new Source(s2d);
 
             offset = 468;

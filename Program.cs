@@ -82,12 +82,12 @@ namespace k5tool
                 int dataLength = message.Length - SystemExclusiveHeaderLength;
                 byte[] rawData = new byte[dataLength];
                 Array.Copy(message, SystemExclusiveHeaderLength, rawData, 0, dataLength);
-                System.Console.WriteLine(String.Format("After SysEx header of {0} bytes, got {1} bytes of data.", SystemExclusiveHeaderLength, dataLength));
+                //System.Console.WriteLine(String.Format("After SysEx header of {0} bytes, got {1} bytes of data.", SystemExclusiveHeaderLength, dataLength));
                 //System.Console.WriteLine(Util.HexDump(rawData));
                 
                 byte[] data = Util.ConvertFromTwoNybbleFormat(rawData);
-                System.Console.WriteLine(String.Format("Converted from two-nybble format, that makes {0} bytes:", data.Length));
-                System.Console.WriteLine(Util.HexDump(data));
+                //System.Console.WriteLine(String.Format("Converted from two-nybble format, that makes {0} bytes:", data.Length));
+                //System.Console.WriteLine(Util.HexDump(data));
 
                 Single s = new Single(data);
                 if (command.Equals("dump"))

@@ -416,18 +416,18 @@ namespace k5tool
 
             // DHG
 
-            System.Console.WriteLine("Harmonic levels:");
+            //System.Console.WriteLine("Harmonic levels:");
             Harmonics = new Harmonic[HarmonicCount];
             for (int i = 0; i < HarmonicCount; i++)
             {
                 (b, offset) = Util.GetNextByte(data, offset);
                 Harmonics[i].Level = b;
-                System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", i + 1, b));
+                //System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", i + 1, b));
             }
-            System.Console.WriteLine();
-            System.Console.WriteLine(String.Format("After harmonic levels, offset = {0}", offset));
+            //System.Console.WriteLine();
+            //System.Console.WriteLine(String.Format("After harmonic levels, offset = {0}", offset));
 
-            System.Console.WriteLine("Harmonic modulation flags and envelope selections:");
+            //System.Console.WriteLine("Harmonic modulation flags and envelope selections:");
             // The values are packed into 31 + 1 bytes. The first 31 bytes contain the settings
             // for harmonics 1 to 62. The solitary byte that follows has the harm 63 settings.
             byte[] harmData = new byte[HarmonicCount];
@@ -435,7 +435,7 @@ namespace k5tool
             while (count < HarmonicCount - 1)
             {
 		        (b, offset) = Util.GetNextByte(data, offset);
-                System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, b));
+                //System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, b));
 		        harmData[count] = (byte)(b & 0x0f); // 0b00001111
                 count++;
 		        harmData[count] = (byte)((b & 0xf0) >> 4);
@@ -444,8 +444,8 @@ namespace k5tool
 
 	        (b, offset) = Util.GetNextByte(data, offset);
 	        harmData[count] = (byte)(b & 0x0f); // 0b00001111
-            System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, b));
-            System.Console.WriteLine();
+            //System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, b));
+            //System.Console.WriteLine();
 
 	        // Now harmData should have all the 63 harmonics
 	        for (int i = 0; i < Harmonics.Length; i++) 
@@ -557,7 +557,7 @@ namespace k5tool
                 for (int si = 0; si < HarmonicEnvelopeSegmentCount; si++)
                 {
             	    (b, offset) = Util.GetNextByte(data, offset);
-                    System.Console.WriteLine(String.Format("b = {0:X2} offset = {1}", b, offset));
+                    //System.Console.WriteLine(String.Format("b = {0:X2}H offset = {1}", b, offset));
                     harmonicEnvelopeDataCount++;
                     if (si == 0)
                     {
@@ -565,14 +565,16 @@ namespace k5tool
                     }
                     segments[si].IsMaxSegment = b.IsBitSet(6);
                     segments[si].Level = (byte)(b & 0x3f);
+                }
 
+                for (int si = 0; si < HarmonicEnvelopeSegmentCount; si++)
+                {
                     (b, offset) = Util.GetNextByte(data, offset);
-                    System.Console.WriteLine(String.Format("b = {0:X2} offset = {1}", b, offset));
+                    //System.Console.WriteLine(String.Format("b = {0:X2}H offset = {1}", b, offset));
                     harmonicEnvelopeDataCount++;
                     segments[si].Rate = (byte)(b & 0x3f);
-
-                    System.Console.WriteLine(String.Format("env{0} seg{1} rate = {2} level = {3}{4}", ei + 1, si + 1, segments[si].Rate, segments[si].Level, segments[si].IsMaxSegment ? "*": ""));
                 }
+
                 harmSet.Envelopes[ei].Segments = segments;
             }
             if (harmonicEnvelopeDataCount != desiredHarmonicEnvelopeDataCount)
@@ -581,19 +583,29 @@ namespace k5tool
             }
             harmSet.IsShadowOn = shadow;
 
+            /*
+            for (int ei = 0; ei < HarmonicEnvelopeCount; ei++)
+            {
+                for (int si = 0; si < HarmonicEnvelopeSegmentCount; si++)
+                {
+                    System.Console.WriteLine(String.Format("env{0} seg{1} rate = {2} level = {3}{4}", ei + 1, si + 1, harmSet.Envelopes[ei].Segments[si].Rate, harmSet.Envelopes[ei].Segments[si].Level, harmSet.Envelopes[ei].Segments[si].IsMaxSegment ? "*": ""));
+                }
+            }
+             */
+
 	        HarmonicSettings = harmSet;  // finally we get to assign this to the source
 
             // DDF (S381 ... S426)
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Filter.Cutoff = b;
+            Filter.Cutoff = (byte)(b & 0x7f);  // just to be sure
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Filter.CutoffModulation = b;
+            Filter.CutoffModulation = (byte)(b & 0x1f);
             (b, offset) = Util.GetNextByte(data, offset);
-            Filter.Slope = b;
+            Filter.Slope = (byte)(b & 0x1f);
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Filter.SlopeModulation = b;
+            Filter.SlopeModulation = (byte)(b & 0x1f);
             (b, offset) = Util.GetNextByte(data, offset);
-            Filter.FlatLevel = b;
+            Filter.FlatLevel = (byte)(b & 0x1f);
     	    (b, offset) = Util.GetNextByte(data, offset);
             Filter.VelocityDepth = b.ToSignedByte();
     	    (b, offset) = Util.GetNextByte(data, offset);
@@ -671,11 +683,18 @@ namespace k5tool
             // But we'll use them as the max setting and level for the 7th amp env segment.
             // Not sure if this is an error in the spec, or my misinterpretation (maybe the
             // 7th segment doesn't have a level?)
-
         }
 
         public override string ToString()
         {
+            StringBuilder harmonicBuilder = new StringBuilder();
+            harmonicBuilder.Append("Harmonics:\n");
+            for (int i = 0; i < HarmonicCount; i++)
+            {
+                harmonicBuilder.Append(String.Format("{0,2}: {1,2} {2}\n", i, Harmonics[i].Level, Harmonics[i].IsModulationActive ? "Y" : "N"));
+            }
+            harmonicBuilder.Append("\n");
+
             return 
                 String.Format("*DFG*              \n\n" +
                 "COARSE= {0,2}        <DEPTH>\n" + 
@@ -689,6 +708,7 @@ namespace k5tool
                 KeyTracking, BenderDepth,
                 Key) + 
                 PitchEnvelope.ToString() +
+                harmonicBuilder.ToString() + 
                 HarmonicSettings.ToString() + 
                 Filter.ToString() +
                 Amplifier.ToString();
