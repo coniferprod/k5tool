@@ -242,4 +242,12 @@ namespace k5tool
             return unchecked((sbyte)b);
         }
     }
+
+    public static class SignedByteExtensions
+    {
+        public static byte ToByte(this sbyte b)
+        {
+            return Convert.ToByte(b);
+        }
+    }
 }

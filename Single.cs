@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace k5tool
 {
@@ -282,6 +283,60 @@ namespace k5tool
                     IsFormantOn ? "ON" : "--", formantStringBuilder.ToString()));
 
             return builder.ToString();
+        }
+
+        const int HarmonicCount = 63;
+
+        public byte[] ToData()
+        {
+            var buf = new List<byte>();
+            
+            foreach (char ch in Name)
+            {
+                buf.Add(Convert.ToByte(ch));
+            }
+
+            buf.Add(Volume);
+            buf.Add(Balance.ToByte());
+
+            buf.Add(Source1Settings.Delay);
+            buf.Add(Source2Settings.Delay);
+
+            buf.Add(Source1Settings.PedalDepth.ToByte());
+            buf.Add(Source2Settings.PedalDepth.ToByte());
+
+            buf.Add(Source1Settings.WheelDepth.ToByte());
+            buf.Add(Source2Settings.WheelDepth.ToByte());
+
+            // etc.
+
+            // Harmonics
+            for (int i = 0; i < HarmonicCount; i++)
+            {
+                buf.Add(Source1.Harmonics[i].Level);
+                buf.Add(Source2.Harmonics[i].Level);
+            }
+
+            buf.Add(Convert.ToByte(LFO.Shape));
+            buf.Add(LFO.Speed);
+            buf.Add(LFO.Delay);
+            buf.Add(LFO.Trend);
+
+            buf.Add(Source1Settings.KeyScaling.Right.ToByte());  // check that this produces the right bit pattern
+            buf.Add(Source2Settings.KeyScaling.Right.ToByte());
+            buf.Add(Source1Settings.KeyScaling.Left.ToByte());
+            buf.Add(Source2Settings.KeyScaling.Left.ToByte());
+            buf.Add(Source1Settings.KeyScaling.Breakpoint);
+            buf.Add(Source2Settings.KeyScaling.Breakpoint);
+
+            for (int i = 0; i < FormantLevelCount; i++)
+            {
+                buf.Add(FormantLevels[i]);
+            }
+
+            // TODO: Checksum
+
+            return buf.ToArray();
         }
     }
 }
