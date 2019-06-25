@@ -170,6 +170,107 @@ namespace k5tool
 
             return builder.ToString();
         }
+
+        public byte[] ToData()
+        {
+            List<byte> data = new List<byte>();
+
+            data.Add(VelocityDepth.ToByte());
+            data.Add(PressureDepth.ToByte());
+            data.Add(KeyScalingDepth.ToByte());
+            data.Add(LFODepth);
+
+            byte b = 0;
+            for (int i = 0; i < Source.HarmonicEnvelopeCount; i++)
+            {
+                b = Envelopes[i].Effect;
+                if (Envelopes[i].IsActive)
+                {
+                    b.SetBit(7);
+                }
+                data.Add(b);
+            }
+
+            b = (byte)Selection;
+            if (IsModulationActive)
+            {
+                b.SetBit(7);
+            }
+            data.Add(b);
+
+            data.Add(RangeFrom);
+            data.Add(RangeTo);
+
+            byte lowNybble = Even.EnvelopeNumber;
+            if (Even.IsOn)
+            {
+                lowNybble.SetBit(3);
+            }
+            byte highNybble = Odd.EnvelopeNumber;
+            if (Odd.IsOn)
+            {
+                highNybble.SetBit(3);
+            }
+            data.Add(Util.ByteFromNybbles(highNybble, lowNybble));
+
+            lowNybble = Fifth.EnvelopeNumber;
+            if (Fifth.IsOn)
+            {
+                lowNybble.SetBit(3);
+            }
+            highNybble = Octave.EnvelopeNumber;
+            if (Octave.IsOn)
+            {
+                highNybble.SetBit(3);
+            }
+            data.Add(Util.ByteFromNybbles(highNybble, lowNybble));
+
+            lowNybble = 0;
+            highNybble = All.EnvelopeNumber;
+            if (All.IsOn)
+            {
+                highNybble.SetBit(3);
+            }
+            data.Add(Util.ByteFromNybbles(highNybble, lowNybble));
+
+            data.Add(Angle);
+            data.Add(HarmonicNumber);
+
+            for (int ei = 0; ei < Source.HarmonicEnvelopeCount; ei++)
+            {
+                for (int si = 0; si < Source.HarmonicEnvelopeSegmentCount; si++)
+                {
+                    b = Envelopes[ei].Segments[si].Level;
+                    if (Envelopes[ei].Segments[si].IsMaxSegment)
+                    {
+                        b.SetBit(6);
+                    }
+                    else
+                    {
+                        b.UnsetBit(6);
+                    }
+                    if (ei == 0)
+                    {
+                        if (IsShadowOn)
+                        {
+                            b.SetBit(7);
+                        }
+                        else
+                        {
+                            b.UnsetBit(7);
+                        }
+                    }
+                    data.Add(b);
+                }
+                for (int si = 0; si < Source.HarmonicEnvelopeSegmentCount; si++)
+                {
+                    b = Envelopes[ei].Segments[si].Rate;
+                    data.Add(b);
+                }
+            }
+
+            return data.ToArray();
+        }
     }
 
     public struct AmplifierEnvelopeSegment
@@ -241,7 +342,63 @@ namespace k5tool
             builder.Append("\n\n    MAX SEG = ?\n\n");
 
             return builder.ToString();
-        }        
+        }
+
+        public byte[] ToData()
+        {
+            List<byte> data = new List<byte>();
+
+            data.Add(Cutoff);
+            data.Add(CutoffModulation);
+            data.Add(Slope);
+            data.Add(SlopeModulation);
+            data.Add(FlatLevel);
+            data.Add(VelocityDepth.ToByte());
+            data.Add(PressureDepth.ToByte());
+            data.Add(KeyScalingDepth.ToByte());
+            data.Add(EnvelopeDepth.ToByte());
+            data.Add(VelocityEnvelopeDepth.ToByte());
+
+            byte b = LFODepth;
+            if (IsModulationActive)
+            {
+                b.SetBit(6);
+            }
+            else
+            {
+                b.UnsetBit(6);
+            }
+            if (IsActive)
+            {
+                b.SetBit(7);
+            }
+            else
+            {
+                b.UnsetBit(7);
+            }
+            data.Add(b);
+
+            for (int i = 0; i < Source.FilterEnvelopeSegmentCount; i++)
+            {
+                data.Add(EnvelopeSegments[i].Rate);
+            }
+
+            for (int i = 0; i < Source.FilterEnvelopeSegmentCount; i++)
+            {
+                b = EnvelopeSegments[i].Level;
+                if (EnvelopeSegments[i].IsMaxSegment)
+                {
+                    b.SetBit(6);
+                }
+                else
+                {
+                    b.UnsetBit(6);
+                }
+                data.Add(b);
+            }
+
+            return data.ToArray();
+        }
     }
 
     public struct Amplifier 
@@ -297,6 +454,58 @@ namespace k5tool
             builder.Append("\n    MAX SEG = ?\n\n");
 
             return builder.ToString();
+        }
+
+        public byte[] ToData()
+        {
+            List<byte> data = new List<byte>();
+
+            data.Add(AttackVelocityDepth.ToByte());
+            data.Add(PressureDepth.ToByte());
+            data.Add(KeyScalingDepth.ToByte());
+            byte b = LFODepth;
+            if (IsActive)
+            {
+                b.SetBit(7);
+            }
+            else
+            {
+                b.UnsetBit(7);
+            }
+            data.Add(b);
+            data.Add(AttackVelocityRate.ToByte());
+            data.Add(ReleaseVelocityRate.ToByte());
+            data.Add(KeyScalingRate.ToByte());
+            
+            for (int i = 0; i < Source.AmplifierEnvelopeSegmentCount; i++)
+            {
+                b = EnvelopeSegments[i].Rate;
+                if (EnvelopeSegments[i].IsRateModulationOn)
+                {
+                    b.SetBit(6);
+                }
+                else
+                {
+                    b.UnsetBit(6);
+                }
+                data.Add(b);
+            }
+
+            for (int i = 0; i < Source.AmplifierEnvelopeSegmentCount; i++)
+            {
+                b = EnvelopeSegments[i].Level;
+                if (EnvelopeSegments[i].IsMaxSegment)
+                {
+                    b.SetBit(6);
+                }
+                else
+                {
+                    b.UnsetBit(6);
+                }
+                data.Add(b);
+            }
+
+            return data.ToArray();
         }
     }
 
@@ -789,196 +998,10 @@ namespace k5tool
                 b.SetBit(3);
             }
 
-            buf.Add(HarmonicSettings.VelocityDepth.ToByte());
-            buf.Add(HarmonicSettings.PressureDepth.ToByte());
-            buf.Add(HarmonicSettings.KeyScalingDepth.ToByte());
-            buf.Add(HarmonicSettings.LFODepth);
+            buf.AddRange(HarmonicSettings.ToData());
+            buf.AddRange(Filter.ToData());
+            buf.AddRange(Amplifier.ToData());
 
-            for (int i = 0; i < HarmonicEnvelopeCount; i++)
-            {
-                b = HarmonicSettings.Envelopes[i].Effect;
-                if (HarmonicSettings.Envelopes[i].IsActive)
-                {
-                    b.SetBit(7);
-                }
-                buf.Add(b);
-            }
-
-            b = (byte)HarmonicSettings.Selection;
-            if (HarmonicSettings.IsModulationActive)
-            {
-                b.SetBit(7);
-            }
-            buf.Add(b);
-
-            buf.Add(HarmonicSettings.RangeFrom);
-            buf.Add(HarmonicSettings.RangeTo);
-
-            lowNybble = HarmonicSettings.Even.EnvelopeNumber;
-            if (HarmonicSettings.Even.IsOn)
-            {
-                lowNybble.SetBit(3);
-            }
-            highNybble = HarmonicSettings.Odd.EnvelopeNumber;
-            if (HarmonicSettings.Odd.IsOn)
-            {
-                highNybble.SetBit(3);
-            }
-            buf.Add(Util.ByteFromNybbles(highNybble, lowNybble));
-
-            lowNybble = HarmonicSettings.Fifth.EnvelopeNumber;
-            if (HarmonicSettings.Fifth.IsOn)
-            {
-                lowNybble.SetBit(3);
-            }
-            highNybble = HarmonicSettings.Octave.EnvelopeNumber;
-            if (HarmonicSettings.Octave.IsOn)
-            {
-                highNybble.SetBit(3);
-            }
-            buf.Add(Util.ByteFromNybbles(highNybble, lowNybble));
-
-            lowNybble = 0;
-            highNybble = HarmonicSettings.All.EnvelopeNumber;
-            if (HarmonicSettings.All.IsOn)
-            {
-                highNybble.SetBit(3);
-            }
-            buf.Add(Util.ByteFromNybbles(highNybble, lowNybble));
-
-            buf.Add(HarmonicSettings.Angle);
-            buf.Add(HarmonicSettings.HarmonicNumber);
-
-            for (int ei = 0; ei < HarmonicEnvelopeCount; ei++)
-            {
-                for (int si = 0; si < HarmonicEnvelopeSegmentCount; si++)
-                {
-                    b = HarmonicSettings.Envelopes[ei].Segments[si].Level;
-                    if (HarmonicSettings.Envelopes[ei].Segments[si].IsMaxSegment)
-                    {
-                        b.SetBit(6);
-                    }
-                    else
-                    {
-                        b.UnsetBit(6);
-                    }
-                    if (ei == 0)
-                    {
-                        if (HarmonicSettings.IsShadowOn)
-                        {
-                            b.SetBit(7);
-                        }
-                        else
-                        {
-                            b.UnsetBit(7);
-                        }
-                    }
-                    buf.Add(b);
-                }
-                for (int si = 0; si < HarmonicEnvelopeSegmentCount; si++)
-                {
-                    b = HarmonicSettings.Envelopes[ei].Segments[si].Rate;
-                    buf.Add(b);
-                }
-            }
-
-            // DDF
-            buf.Add(Filter.Cutoff);
-            buf.Add(Filter.CutoffModulation);
-            buf.Add(Filter.Slope);
-            buf.Add(Filter.SlopeModulation);
-            buf.Add(Filter.FlatLevel);
-            buf.Add(Filter.VelocityDepth.ToByte());
-            buf.Add(Filter.PressureDepth.ToByte());
-            buf.Add(Filter.KeyScalingDepth.ToByte());
-            buf.Add(Filter.EnvelopeDepth.ToByte());
-            buf.Add(Filter.VelocityEnvelopeDepth.ToByte());
-
-            b = Filter.LFODepth;
-            if (Filter.IsModulationActive)
-            {
-                b.SetBit(6);
-            }
-            else
-            {
-                b.UnsetBit(6);
-            }
-            if (Filter.IsActive)
-            {
-                b.SetBit(7);
-            }
-            else
-            {
-                b.UnsetBit(7);
-            }
-            buf.Add(b);
-
-            for (int i = 0; i < FilterEnvelopeSegmentCount; i++)
-            {
-                buf.Add(Filter.EnvelopeSegments[i].Rate);
-            }
-
-            for (int i = 0; i < FilterEnvelopeSegmentCount; i++)
-            {
-                b = Filter.EnvelopeSegments[i].Level;
-                if (Filter.EnvelopeSegments[i].IsMaxSegment)
-                {
-                    b.SetBit(6);
-                }
-                else
-                {
-                    b.UnsetBit(6);
-                }
-                buf.Add(b);
-            }
-
-            // DDA
-
-            buf.Add(Amplifier.AttackVelocityDepth.ToByte());
-            buf.Add(Amplifier.PressureDepth.ToByte());
-            buf.Add(Amplifier.KeyScalingDepth.ToByte());
-            b = Amplifier.LFODepth;
-            if (Amplifier.IsActive)
-            {
-                b.SetBit(7);
-            }
-            else
-            {
-                b.UnsetBit(7);
-            }
-            buf.Add(b);
-            buf.Add(Amplifier.AttackVelocityRate.ToByte());
-            buf.Add(Amplifier.ReleaseVelocityRate.ToByte());
-            buf.Add(Amplifier.KeyScalingRate.ToByte());
-            
-            for (int i = 0; i < AmplifierEnvelopeSegmentCount; i++)
-            {
-                b = Amplifier.EnvelopeSegments[i].Rate;
-                if (Amplifier.EnvelopeSegments[i].IsRateModulationOn)
-                {
-                    b.SetBit(6);
-                }
-                else
-                {
-                    b.UnsetBit(6);
-                }
-                buf.Add(b);
-            }
-
-            for (int i = 0; i < AmplifierEnvelopeSegmentCount; i++)
-            {
-                b = Amplifier.EnvelopeSegments[i].Level;
-                if (Amplifier.EnvelopeSegments[i].IsMaxSegment)
-                {
-                    b.SetBit(6);
-                }
-                else
-                {
-                    b.UnsetBit(6);
-                }
-                buf.Add(b);
-            }
-            
             System.Console.WriteLine(String.Format("S{0} bytes:\n{1}", SourceNumber, Util.HexDump(buf.ToArray())));
 
             return buf.ToArray();
