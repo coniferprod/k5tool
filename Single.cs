@@ -60,6 +60,46 @@ namespace k5tool
         }
     }
 
+    public enum LFOShape  // 1 ~ 6
+    {
+        Triangle,
+        InverseTriangle,
+        Square,
+        InverseSquare,
+        Sawtooth,
+        InverseSawtooth
+    }
+
+    public struct LFO
+    {
+        public LFOShape Shape;
+        public byte Speed;  // 0~99
+        public byte Delay;  // 0~31
+        public byte Trend;  // 0~31
+
+        public override string ToString()
+        {
+            StringBuilder builder = new StringBuilder();
+
+            builder.Append("*LFO*\n\n");
+            builder.Append(String.Format(" SHAPE= {0}\n SPEED= {1,2}\n DELAY= {2,2}\n TREND= {3,2}\n\n\n", Shape, Speed, Delay, Trend));
+
+            return builder.ToString();
+        }
+
+        public byte[] ToData()
+        {
+            List<byte> data = new List<byte>();
+
+            data.Add(Convert.ToByte(Shape));
+            data.Add(Speed);
+            data.Add(Delay);
+            data.Add(Trend);
+
+            return data.ToArray();
+        }
+    }
+    
     public class Single
     {
         const int FormantLevelCount = 11;
@@ -354,10 +394,7 @@ namespace k5tool
             }
             buf.AddRange(sd);
 
-            buf.Add(Convert.ToByte(LFO.Shape));
-            buf.Add(LFO.Speed);
-            buf.Add(LFO.Delay);
-            buf.Add(LFO.Trend);
+            buf.AddRange(LFO.ToData());
 
             buf.Add(Source1Settings.KeyScaling.Right.ToByte());
             buf.Add(Source2Settings.KeyScaling.Right.ToByte());

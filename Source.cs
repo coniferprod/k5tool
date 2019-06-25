@@ -172,16 +172,6 @@ namespace k5tool
         }
     }
 
-    public enum LFOShape  // 1 ~ 6
-    {
-        Triangle,
-        InverseTriangle,
-        Square,
-        InverseSquare,
-        Sawtooth,
-        InverseSawtooth
-    }
-
     public struct AmplifierEnvelopeSegment
     {
         public bool IsRateModulationOn;
@@ -310,24 +300,6 @@ namespace k5tool
         }
     }
 
-    public struct LFO
-    {
-        public LFOShape Shape;
-        public byte Speed;  // 0~99
-        public byte Delay;  // 0~31
-        public byte Trend;  // 0~31
-
-        public override string ToString()
-        {
-            StringBuilder builder = new StringBuilder();
-
-            builder.Append("*LFO*\n\n");
-            builder.Append(String.Format(" SHAPE= {0}\n SPEED= {1,2}\n DELAY= {2,2}\n TREND= {3,2}\n\n\n", Shape, Speed, Delay, Trend));
-
-            return builder.ToString();
-        }
-    }
-    
     public class Source
     {
         public const int EnvelopeSegmentCount = 6;
