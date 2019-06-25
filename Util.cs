@@ -99,9 +99,9 @@ namespace k5tool
 
         public static (byte, byte) NybblesFromByte(byte b)
         {
-            byte n1 = (byte)(b & 0x0F);
-            byte n2 = (byte)((b & 0xF0) >> 4);
-            return (n1, n2);
+            byte low = (byte)(b & 0x0F);
+            byte high = (byte)((b & 0xF0) >> 4);
+            return (high, low);
         }
         public static byte LowNybble(byte b)
         {

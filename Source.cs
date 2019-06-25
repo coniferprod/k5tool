@@ -723,36 +723,42 @@ namespace k5tool
             {
                 (b, offset) = Util.GetNextByte(data, offset);
                 Harmonics[i].Level = b;
-                //System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", i + 1, b));
+                System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", i + 1, b));
             }
-            //System.Console.WriteLine();
+            System.Console.WriteLine();
             //System.Console.WriteLine(String.Format("After harmonic levels, offset = {0}", offset));
 
             //System.Console.WriteLine("Harmonic modulation flags and envelope selections:");
             // The values are packed into 31 + 1 bytes. The first 31 bytes contain the settings
             // for harmonics 1 to 62. The solitary byte that follows has the harm 63 settings.
-            byte[] harmData = new byte[HarmonicCount];
+            List<byte> harmData = new List<byte>();
             int count = 0;
+            byte lowNybble = 0;
+            byte highNybble = 0;
             while (count < HarmonicCount - 1)
             {
 		        (b, offset) = Util.GetNextByte(data, offset);
+                (highNybble, lowNybble) = Util.NybblesFromByte(b);
                 //System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, b));
-		        harmData[count] = (byte)(b & 0x0f); // 0b00001111
-                count++;
-		        harmData[count] = (byte)((b & 0xf0) >> 4);
-                count++;
+		        //harmData[count] = (byte)(b & 0x0f); // 0b00001111
+                harmData.Add(lowNybble);
+                harmData.Add(highNybble);
+                System.Console.WriteLine(String.Format("{0:X2} => {1:X2} {2:X2}", b, lowNybble, highNybble));
+
+                count += 2;
             }
 
 	        (b, offset) = Util.GetNextByte(data, offset);
-	        harmData[count] = (byte)(b & 0x0f); // 0b00001111
+	        harmData.Add((byte)(b & 0x0f)); // AND with 0b00001111
             //System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, b));
             //System.Console.WriteLine();
 
-	        // Now harmData should have all the 63 harmonics
+	        // Now harmData should have data for all the 63 harmonics
 	        for (int i = 0; i < Harmonics.Length; i++) 
             {
-		        Harmonics[i].IsModulationActive = harmData[i].IsBitSet(3);
-		        Harmonics[i].EnvelopeNumber = (byte)(harmData[i] & 0x03);
+		        Harmonics[i].IsModulationActive = harmData[i].IsBitSet(2);
+		        Harmonics[i].EnvelopeNumber = (byte)(harmData[i] + 1);  // add one to make env number 1...4
+                System.Console.WriteLine(String.Format("H{0} IsMod = {1} Env = {2}", i, Harmonics[i].IsModulationActive, Harmonics[i].EnvelopeNumber));
 	        }
 
             // DHG harmonic settings (S253 ... S260)
@@ -1024,23 +1030,25 @@ namespace k5tool
             // Harmonics 1...62
             while (count < HarmonicCount - 1)
             {
-                lowNybble = Harmonics[count].EnvelopeNumber;
+                lowNybble = (byte)(Harmonics[count].EnvelopeNumber - 1);
                 lowNybble.UnsetBit(2);
                 if (Harmonics[count].IsModulationActive)
                 {
-                    lowNybble.SetBit(3);
+                    lowNybble.SetBit(2);
                 }
                 count++;
 
-                highNybble = Harmonics[count].EnvelopeNumber;
+                highNybble = (byte)(Harmonics[count].EnvelopeNumber - 1);
                 highNybble.UnsetBit(2);
                 if (Harmonics[count].IsModulationActive)
                 {
-                    highNybble.SetBit(3);
+                    highNybble.SetBit(2);
                 }
                 count++;
 
-                buf.Add(Util.ByteFromNybbles(highNybble, lowNybble));
+                b = Util.ByteFromNybbles(highNybble, lowNybble);
+                System.Console.WriteLine(String.Format("{0:X2} {1:X2} ==> {2:X2}", highNybble, lowNybble, b));
+                buf.Add(b);
             }
 
             // harmonic 63
