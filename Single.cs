@@ -173,11 +173,11 @@ namespace k5tool
 
             //System.Console.WriteLine(String.Format("Source 1 data ({0} bytes):", s1d.Length));
             //System.Console.WriteLine(Util.HexDump(s1d));
-            Source1 = new Source(s1d);
+            Source1 = new Source(s1d, 1);
 
             //System.Console.WriteLine(String.Format("Source 2 data ({0} bytes):", s2d.Length));
             //System.Console.WriteLine(Util.HexDump(s2d));
-            Source2 = new Source(s2d);
+            Source2 = new Source(s2d, 2);
 
             offset = 468;
 
@@ -339,9 +339,10 @@ namespace k5tool
             }
             buf.Add(b);
 
-            // Interleave the two byte arrays:
             byte[] s1d = Source1.ToData();
             byte[] s2d = Source2.ToData();
+
+            // Interleave the two byte arrays:
             int dataLength = s1d.Length;
             List<byte> sd = new List<byte>();
             int index = 0;

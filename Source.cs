@@ -354,8 +354,12 @@ namespace k5tool
         public Filter Filter;
         public Amplifier Amplifier;
 
-        public Source(byte[] data)
+        public int SourceNumber;
+
+        public Source(byte[] data, int number)
         {
+            SourceNumber = number;
+
             int offset = 0;
             byte b = 0;  // reused when getting the next byte
             List<byte> buf = new List<byte>();
@@ -427,7 +431,7 @@ namespace k5tool
                 PitchEnvelope.Segments[i].Level = b.ToSignedByte();
             }
 
-            System.Console.WriteLine(String.Format("DFG bytes: {0}", Util.HexDump(buf.ToArray())));
+            //System.Console.WriteLine(String.Format("Parsed DFG bytes:\n{0}", Util.HexDump(buf.ToArray())));
             
             // DHG
 
@@ -702,6 +706,7 @@ namespace k5tool
 
         public override string ToString()
         {
+            /*
             StringBuilder harmonicBuilder = new StringBuilder();
             harmonicBuilder.Append("Harmonics:\n");
             for (int i = 0; i < HarmonicCount; i++)
@@ -709,6 +714,7 @@ namespace k5tool
                 harmonicBuilder.Append(String.Format("{0,2}: {1,2} {2}\n", i, Harmonics[i].Level, Harmonics[i].IsModulationActive ? "Y" : "N"));
             }
             harmonicBuilder.Append("\n");
+             */
 
             return 
                 String.Format("*DFG*              \n\n" +
@@ -723,7 +729,7 @@ namespace k5tool
                 KeyTracking, BenderDepth,
                 Key) + 
                 PitchEnvelope.ToString() +
-                harmonicBuilder.ToString() + 
+                //harmonicBuilder.ToString() + 
                 HarmonicSettings.ToString() + 
                 Filter.ToString() +
                 Amplifier.ToString();
@@ -733,6 +739,7 @@ namespace k5tool
         {
             var buf = new List<byte>();
 
+            // DFG
             buf.Add(Coarse.ToByte());
             buf.Add(Fine.ToByte());
 
@@ -753,6 +760,7 @@ namespace k5tool
             buf.Add(VelocityEnvelopeDepth.ToByte());
             buf.Add(LFODepth);
             buf.Add(PressureLFODepth.ToByte());
+            // so far, so good
 
             for (int i = 0; i < PitchEnvelopeSegmentCount; i++)
             {
@@ -770,7 +778,7 @@ namespace k5tool
                 buf.Add(sb.ToByte());
             }
 
-            System.Console.WriteLine(String.Format("DFG bytes: {0}", Util.HexDump(buf.ToArray())));
+            //System.Console.WriteLine(String.Format("Emitted DFG bytes:\n{0}", Util.HexDump(buf.ToArray())));
             
             for (int i = 0; i < HarmonicCount; i++)
             {
@@ -999,6 +1007,8 @@ namespace k5tool
                 buf.Add(b);
             }
             
+            System.Console.WriteLine(String.Format("S{0} bytes:\n{1}", SourceNumber, Util.HexDump(buf.ToArray())));
+
             return buf.ToArray();
         }
     }
