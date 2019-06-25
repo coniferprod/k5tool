@@ -358,13 +358,16 @@ namespace k5tool
         {
             int offset = 0;
             byte b = 0;  // reused when getting the next byte
+            List<byte> buf = new List<byte>();
 
             // DFG
             (b, offset) = Util.GetNextByte(data, offset);
             Coarse = b.ToSignedByte();
+            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             Fine = b.ToSignedByte();
+            buf.Add(b);
 
 	        (b, offset) = Util.GetNextByte(data, offset);
 	        if (b.IsBitSet(7))
@@ -378,29 +381,37 @@ namespace k5tool
                 Key = 0;  // ignored in this case
             }
             // TODO: Check that the SysEx spec gets the meaning of b7 right
+            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             EnvelopeDepth = b.ToSignedByte();
+            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             PressureDepth = b.ToSignedByte();
+            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             BenderDepth = b;
+            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             VelocityEnvelopeDepth = b.ToSignedByte();
+            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             LFODepth = b;
+            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             PressureLFODepth = b.ToSignedByte();
+            buf.Add(b);
 
             PitchEnvelope.Segments = new PitchEnvelopeSegment[PitchEnvelopeSegmentCount];
             for (int i = 0; i < PitchEnvelopeSegmentCount; i++)
             {
                 (b, offset) = Util.GetNextByte(data, offset);
+                buf.Add(b);
                 if (i == 0)
                 {
                     PitchEnvelope.IsLooping = b.IsBitSet(7);
@@ -412,9 +423,12 @@ namespace k5tool
                 }
 
                 (b, offset) = Util.GetNextByte(data, offset);
+                buf.Add(b);
                 PitchEnvelope.Segments[i].Level = b.ToSignedByte();
             }
 
+            System.Console.WriteLine(String.Format("DFG bytes: {0}", Util.HexDump(buf.ToArray())));
+            
             // DHG
 
             //System.Console.WriteLine("Harmonic levels:");
@@ -731,6 +745,7 @@ namespace k5tool
             {
                 b.UnsetBit(7);
             }
+            buf.Add(b);  // this looks a bit fishy
 
             buf.Add(EnvelopeDepth.ToByte());
             buf.Add(PressureDepth.ToByte());
@@ -755,6 +770,8 @@ namespace k5tool
                 buf.Add(sb.ToByte());
             }
 
+            System.Console.WriteLine(String.Format("DFG bytes: {0}", Util.HexDump(buf.ToArray())));
+            
             for (int i = 0; i < HarmonicCount; i++)
             {
                 buf.Add(Harmonics[i].Level);
@@ -982,8 +999,6 @@ namespace k5tool
                 buf.Add(b);
             }
             
-            buf.Add(0);
-
             return buf.ToArray();
         }
     }

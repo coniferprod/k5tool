@@ -288,6 +288,9 @@ namespace k5tool
         public byte[] ToData()
         {
             var buf = new List<byte>();
+            byte b = 0;
+            byte lowNybble = 0;
+            byte highNybble = 0;
             
             foreach (char ch in Name)
             {
@@ -306,8 +309,18 @@ namespace k5tool
             buf.Add(Source1Settings.WheelDepth.ToByte());
             buf.Add(Source2Settings.WheelDepth.ToByte());
 
+            highNybble = (byte)Source1Settings.PedalAssign;
+            lowNybble = (byte)Source1Settings.WheelAssign;
+            b = Util.ByteFromNybbles(highNybble, lowNybble);
+            buf.Add(b);
+
+            highNybble = (byte)Source2Settings.PedalAssign;
+            lowNybble = (byte)Source2Settings.WheelAssign;
+            b = Util.ByteFromNybbles(highNybble, lowNybble);
+            buf.Add(b);
+
             // portamento and p. speed - S19
-            byte b = PortamentoSpeed;
+            b = PortamentoSpeed;
             if (Portamento)
             {
                 b.SetBit(7);
@@ -326,6 +339,7 @@ namespace k5tool
             }
             buf.Add(b);
 
+            // Interleave the two byte arrays:
             byte[] s1d = Source1.ToData();
             byte[] s2d = Source2.ToData();
             int dataLength = s1d.Length;
@@ -344,7 +358,7 @@ namespace k5tool
             buf.Add(LFO.Delay);
             buf.Add(LFO.Trend);
 
-            buf.Add(Source1Settings.KeyScaling.Right.ToByte());  // check that this produces the right bit pattern
+            buf.Add(Source1Settings.KeyScaling.Right.ToByte());
             buf.Add(Source2Settings.KeyScaling.Right.ToByte());
             buf.Add(Source1Settings.KeyScaling.Left.ToByte());
             buf.Add(Source2Settings.KeyScaling.Left.ToByte());
@@ -356,9 +370,28 @@ namespace k5tool
                 buf.Add(FormantLevels[i]);
             }
 
-            // TODO: Add checksum
+            buf.Add(0);
+
+            int count = buf.Count;
+            int checksum = ComputeChecksum(buf.GetRange(0, count).ToArray());
+            buf.Add((byte)(checksum & 0xff));
+            buf.Add((byte)((((uint)checksum) >> 8) & 0xFF));
 
             return buf.ToArray();
+        }
+
+        int ComputeChecksum(byte[] data)
+        {
+            int sum = 0;
+            for (int i = 0; i < data.Length; i += 2)
+            {
+                sum += (((data[i + 1] & 0xFF) << 8) | (data[i] & 0xFF));
+            }
+                    
+            sum = sum & 0xffff;
+            sum = (0x5a3c - sum) & 0xffff;
+
+            return sum;
         }
     }
 }

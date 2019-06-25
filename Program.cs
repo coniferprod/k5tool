@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
@@ -93,6 +94,35 @@ namespace k5tool
                 if (command.Equals("dump"))
                 {
                     System.Console.WriteLine(s.ToString());
+
+                    System.Console.WriteLine("Original single data:");
+                    System.Console.WriteLine(Util.HexDump(data));
+
+                    byte[] sd = s.ToData();
+                    System.Console.WriteLine("Converted to data model and back to bytes:");
+                    System.Console.WriteLine(Util.HexDump(sd));
+
+                    //List<byte> originalData = new List<byte>(data);
+                    //List<byte> convertedData = new List<byte>(sd);
+                    bool result = false;
+                    int index = -1;
+                    (result, index) = Util.ByteArrayCompare(data, sd);
+                    if (!result)
+                    {
+                        if (index == -1)
+                        {
+                            System.Console.WriteLine("Byte arrays are of different lengths");
+                        }
+                        else
+                        {
+                            System.Console.WriteLine($"Byte arrays differ at index {index}");
+                        }
+                    }
+                    else
+                    {
+                        System.Console.WriteLine("Byte arrays are identical, yay!");
+                    }
+                    
                 }
                 else if (command.Equals("list"))
                 {

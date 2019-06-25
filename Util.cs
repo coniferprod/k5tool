@@ -91,6 +91,7 @@ namespace k5tool
             return retList;
         }
 
+        // n1 = high nybble, n2 = low nybble
         public static byte ByteFromNybbles(byte n1, byte n2)
         {
             return (byte)((n1 << 4) | n2);
@@ -195,6 +196,23 @@ namespace k5tool
             return (data[offset], offset + 1);
         }
 
+        public static (bool, int) ByteArrayCompare(byte[] a1, byte[] a2)
+        {
+            if (a1.Length != a2.Length)
+            {
+                return (false, -1);
+            }
+
+            for (int i = 0; i < a1.Length; i++)
+            {
+                if (a1[i] != a2[i])
+                {
+                    return (false, i);
+                }
+            }
+
+            return (true, a1.Length);
+        }
     }
 
     // Byte extensions from https://derekwill.com/2015/03/05/bit-processing-in-c/
@@ -245,9 +263,9 @@ namespace k5tool
 
     public static class SignedByteExtensions
     {
-        public static byte ToByte(this sbyte b)
+        public static byte ToByte(this sbyte s)
         {
-            return Convert.ToByte(b);
+            return unchecked((byte)s);
         }
     }
 }
