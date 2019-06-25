@@ -203,24 +203,24 @@ namespace k5tool
             data.Add(RangeFrom);
             data.Add(RangeTo);
 
-            byte lowNybble = Even.EnvelopeNumber;
+            byte lowNybble = (byte)(Even.EnvelopeNumber - 1);
             if (Even.IsOn)
             {
                 lowNybble.SetBit(3);
             }
-            byte highNybble = Odd.EnvelopeNumber;
+            byte highNybble = (byte)(Odd.EnvelopeNumber - 1);
             if (Odd.IsOn)
             {
                 highNybble.SetBit(3);
             }
             data.Add(Util.ByteFromNybbles(highNybble, lowNybble));
 
-            lowNybble = Fifth.EnvelopeNumber;
+            lowNybble = (byte)(Fifth.EnvelopeNumber + 1);
             if (Fifth.IsOn)
             {
                 lowNybble.SetBit(3);
             }
-            highNybble = Octave.EnvelopeNumber;
+            highNybble = (byte)(Octave.EnvelopeNumber + 1);
             if (Octave.IsOn)
             {
                 highNybble.SetBit(3);
@@ -228,7 +228,7 @@ namespace k5tool
             data.Add(Util.ByteFromNybbles(highNybble, lowNybble));
 
             lowNybble = 0;
-            highNybble = All.EnvelopeNumber;
+            highNybble = (byte)(All.EnvelopeNumber + 1);
             if (All.IsOn)
             {
                 highNybble.SetBit(3);
@@ -507,7 +507,7 @@ namespace k5tool
                 data.Add(b);
             }
 
-            for (int i = 0; i < Source.AmplifierEnvelopeSegmentCount; i++)
+            for (int i = 0; i < Source.AmplifierEnvelopeSegmentCount - 1; i++)
             {
                 b = EnvelopeSegments[i].Level;
                 if (EnvelopeSegments[i].IsMaxSegment)
@@ -521,6 +521,8 @@ namespace k5tool
                 data.Add(b);
             }
 
+            data.Add(0);
+            
             if (data.Count != DataLength)
             {
                 System.Console.WriteLine(String.Format("WARNING: DDA length, expected = {0}, actual = {1}", DataLength, data.Count));
@@ -743,8 +745,7 @@ namespace k5tool
 		        //harmData[count] = (byte)(b & 0x0f); // 0b00001111
                 harmData.Add(lowNybble);
                 harmData.Add(highNybble);
-                System.Console.WriteLine(String.Format("{0:X2} => {1:X2} {2:X2}", b, lowNybble, highNybble));
-
+                //System.Console.WriteLine(String.Format("{0:X2} => {1:X2} {2:X2}", b, lowNybble, highNybble));
                 count += 2;
             }
 
@@ -758,7 +759,7 @@ namespace k5tool
             {
 		        Harmonics[i].IsModulationActive = harmData[i].IsBitSet(2);
 		        Harmonics[i].EnvelopeNumber = (byte)(harmData[i] + 1);  // add one to make env number 1...4
-                System.Console.WriteLine(String.Format("H{0} IsMod = {1} Env = {2}", i, Harmonics[i].IsModulationActive, Harmonics[i].EnvelopeNumber));
+                //System.Console.WriteLine(String.Format("H{0} IsMod = {1} Env = {2}", i, Harmonics[i].IsModulationActive, Harmonics[i].EnvelopeNumber));
 	        }
 
             // DHG harmonic settings (S253 ... S260)
@@ -977,7 +978,7 @@ namespace k5tool
             }
 
             // Then, the levels and max settings:
-            for (int i = 0; i < AmplifierEnvelopeSegmentCount; i++)
+            for (int i = 0; i < AmplifierEnvelopeSegmentCount - 1; i++)
             {
         	    (b, offset) = Util.GetNextByte(data, offset);
                 Amplifier.EnvelopeSegments[i].IsMaxSegment = b.IsBitSet(6);
@@ -1034,7 +1035,7 @@ namespace k5tool
                 lowNybble.UnsetBit(2);
                 if (Harmonics[count].IsModulationActive)
                 {
-                    lowNybble.SetBit(2);
+                    lowNybble.SetBit(3);
                 }
                 count++;
 
@@ -1042,22 +1043,23 @@ namespace k5tool
                 highNybble.UnsetBit(2);
                 if (Harmonics[count].IsModulationActive)
                 {
-                    highNybble.SetBit(2);
+                    highNybble.SetBit(3);
                 }
                 count++;
 
                 b = Util.ByteFromNybbles(highNybble, lowNybble);
-                System.Console.WriteLine(String.Format("{0:X2} {1:X2} ==> {2:X2}", highNybble, lowNybble, b));
+                //System.Console.WriteLine(String.Format("{0:X2} {1:X2} => {2:X2}", highNybble, lowNybble, b));
                 buf.Add(b);
             }
 
             // harmonic 63
-            b = Harmonics[count].EnvelopeNumber;
+            b = (byte)(Harmonics[count].EnvelopeNumber - 1);
             b.UnsetBit(2);
             if (Harmonics[count].IsModulationActive)
             {
                 b.SetBit(3);
             }
+            buf.Add(b);
 
             buf.AddRange(HarmonicSettings.ToData());
             buf.AddRange(Filter.ToData());
