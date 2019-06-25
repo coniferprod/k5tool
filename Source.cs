@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Collections.Generic;
 
 namespace k5tool
 {
@@ -329,9 +330,9 @@ namespace k5tool
     
     public class Source
     {
-        const int EnvelopeSegmentCount = 6;
-        const int PitchEnvelopeSegmentCount = 6;
-        const int HarmonicCount = 63;
+        public const int EnvelopeSegmentCount = 6;
+        public const int PitchEnvelopeSegmentCount = 6;
+        public const int HarmonicCount = 63;
         public const int HarmonicEnvelopeCount = 4;
         public const int HarmonicEnvelopeSegmentCount = 6;
         public const int FilterEnvelopeSegmentCount = 6;
@@ -712,6 +713,278 @@ namespace k5tool
                 HarmonicSettings.ToString() + 
                 Filter.ToString() +
                 Amplifier.ToString();
+        }
+
+        public byte[] ToData()
+        {
+            var buf = new List<byte>();
+
+            buf.Add(Coarse.ToByte());
+            buf.Add(Fine.ToByte());
+
+            byte b = Key;  // the tracking key if fixed, 0 if track
+            if (KeyTracking == KeyTracking.Fixed)
+            {
+                b.SetBit(7);
+            }
+            else
+            {
+                b.UnsetBit(7);
+            }
+
+            buf.Add(EnvelopeDepth.ToByte());
+            buf.Add(PressureDepth.ToByte());
+            buf.Add(BenderDepth);
+            buf.Add(VelocityEnvelopeDepth.ToByte());
+            buf.Add(LFODepth);
+            buf.Add(PressureLFODepth.ToByte());
+
+            for (int i = 0; i < PitchEnvelopeSegmentCount; i++)
+            {
+                b = PitchEnvelope.Segments[i].Rate;
+                if (PitchEnvelope.IsLooping)
+                {
+                    b.SetBit(7);
+                }
+                buf.Add(b);
+            }
+
+            for (int i = 0; i < PitchEnvelopeSegmentCount; i++)
+            {
+                sbyte sb = PitchEnvelope.Segments[i].Level;
+                buf.Add(sb.ToByte());
+            }
+
+            for (int i = 0; i < HarmonicCount; i++)
+            {
+                buf.Add(Harmonics[i].Level);
+            }
+
+            byte lowNybble = 0, highNybble = 0;
+            int count = 0;
+            // Harmonics 1...62
+            while (count < HarmonicCount - 1)
+            {
+                lowNybble = Harmonics[count].EnvelopeNumber;
+                lowNybble.UnsetBit(2);
+                if (Harmonics[count].IsModulationActive)
+                {
+                    lowNybble.SetBit(3);
+                }
+                count++;
+
+                highNybble = Harmonics[count].EnvelopeNumber;
+                highNybble.UnsetBit(2);
+                if (Harmonics[count].IsModulationActive)
+                {
+                    highNybble.SetBit(3);
+                }
+                count++;
+
+                buf.Add(Util.ByteFromNybbles(highNybble, lowNybble));
+            }
+
+            // harmonic 63
+            b = Harmonics[count].EnvelopeNumber;
+            b.UnsetBit(2);
+            if (Harmonics[count].IsModulationActive)
+            {
+                b.SetBit(3);
+            }
+
+            buf.Add(HarmonicSettings.VelocityDepth.ToByte());
+            buf.Add(HarmonicSettings.PressureDepth.ToByte());
+            buf.Add(HarmonicSettings.KeyScalingDepth.ToByte());
+            buf.Add(HarmonicSettings.LFODepth);
+
+            for (int i = 0; i < HarmonicEnvelopeCount; i++)
+            {
+                b = HarmonicSettings.Envelopes[i].Effect;
+                if (HarmonicSettings.Envelopes[i].IsActive)
+                {
+                    b.SetBit(7);
+                }
+                buf.Add(b);
+            }
+
+            b = (byte)HarmonicSettings.Selection;
+            if (HarmonicSettings.IsModulationActive)
+            {
+                b.SetBit(7);
+            }
+            buf.Add(b);
+
+            buf.Add(HarmonicSettings.RangeFrom);
+            buf.Add(HarmonicSettings.RangeTo);
+
+            lowNybble = HarmonicSettings.Even.EnvelopeNumber;
+            if (HarmonicSettings.Even.IsOn)
+            {
+                lowNybble.SetBit(3);
+            }
+            highNybble = HarmonicSettings.Odd.EnvelopeNumber;
+            if (HarmonicSettings.Odd.IsOn)
+            {
+                highNybble.SetBit(3);
+            }
+            buf.Add(Util.ByteFromNybbles(highNybble, lowNybble));
+
+            lowNybble = HarmonicSettings.Fifth.EnvelopeNumber;
+            if (HarmonicSettings.Fifth.IsOn)
+            {
+                lowNybble.SetBit(3);
+            }
+            highNybble = HarmonicSettings.Octave.EnvelopeNumber;
+            if (HarmonicSettings.Octave.IsOn)
+            {
+                highNybble.SetBit(3);
+            }
+            buf.Add(Util.ByteFromNybbles(highNybble, lowNybble));
+
+            lowNybble = 0;
+            highNybble = HarmonicSettings.All.EnvelopeNumber;
+            if (HarmonicSettings.All.IsOn)
+            {
+                highNybble.SetBit(3);
+            }
+            buf.Add(Util.ByteFromNybbles(highNybble, lowNybble));
+
+            buf.Add(HarmonicSettings.Angle);
+            buf.Add(HarmonicSettings.HarmonicNumber);
+
+            for (int ei = 0; ei < HarmonicEnvelopeCount; ei++)
+            {
+                for (int si = 0; si < HarmonicEnvelopeSegmentCount; si++)
+                {
+                    b = HarmonicSettings.Envelopes[ei].Segments[si].Level;
+                    if (HarmonicSettings.Envelopes[ei].Segments[si].IsMaxSegment)
+                    {
+                        b.SetBit(6);
+                    }
+                    else
+                    {
+                        b.UnsetBit(6);
+                    }
+                    if (ei == 0)
+                    {
+                        if (HarmonicSettings.IsShadowOn)
+                        {
+                            b.SetBit(7);
+                        }
+                        else
+                        {
+                            b.UnsetBit(7);
+                        }
+                    }
+                    buf.Add(b);
+                }
+                for (int si = 0; si < HarmonicEnvelopeSegmentCount; si++)
+                {
+                    b = HarmonicSettings.Envelopes[ei].Segments[si].Rate;
+                    buf.Add(b);
+                }
+            }
+
+            // DDF
+            buf.Add(Filter.Cutoff);
+            buf.Add(Filter.CutoffModulation);
+            buf.Add(Filter.Slope);
+            buf.Add(Filter.SlopeModulation);
+            buf.Add(Filter.FlatLevel);
+            buf.Add(Filter.VelocityDepth.ToByte());
+            buf.Add(Filter.PressureDepth.ToByte());
+            buf.Add(Filter.KeyScalingDepth.ToByte());
+            buf.Add(Filter.EnvelopeDepth.ToByte());
+            buf.Add(Filter.VelocityEnvelopeDepth.ToByte());
+
+            b = Filter.LFODepth;
+            if (Filter.IsModulationActive)
+            {
+                b.SetBit(6);
+            }
+            else
+            {
+                b.UnsetBit(6);
+            }
+            if (Filter.IsActive)
+            {
+                b.SetBit(7);
+            }
+            else
+            {
+                b.UnsetBit(7);
+            }
+            buf.Add(b);
+
+            for (int i = 0; i < FilterEnvelopeSegmentCount; i++)
+            {
+                buf.Add(Filter.EnvelopeSegments[i].Rate);
+            }
+
+            for (int i = 0; i < FilterEnvelopeSegmentCount; i++)
+            {
+                b = Filter.EnvelopeSegments[i].Level;
+                if (Filter.EnvelopeSegments[i].IsMaxSegment)
+                {
+                    b.SetBit(6);
+                }
+                else
+                {
+                    b.UnsetBit(6);
+                }
+                buf.Add(b);
+            }
+
+            // DDA
+
+            buf.Add(Amplifier.AttackVelocityDepth.ToByte());
+            buf.Add(Amplifier.PressureDepth.ToByte());
+            buf.Add(Amplifier.KeyScalingDepth.ToByte());
+            b = Amplifier.LFODepth;
+            if (Amplifier.IsActive)
+            {
+                b.SetBit(7);
+            }
+            else
+            {
+                b.UnsetBit(7);
+            }
+            buf.Add(b);
+            buf.Add(Amplifier.AttackVelocityRate.ToByte());
+            buf.Add(Amplifier.ReleaseVelocityRate.ToByte());
+            buf.Add(Amplifier.KeyScalingRate.ToByte());
+            
+            for (int i = 0; i < AmplifierEnvelopeSegmentCount; i++)
+            {
+                b = Amplifier.EnvelopeSegments[i].Rate;
+                if (Amplifier.EnvelopeSegments[i].IsRateModulationOn)
+                {
+                    b.SetBit(6);
+                }
+                else
+                {
+                    b.UnsetBit(6);
+                }
+                buf.Add(b);
+            }
+
+            for (int i = 0; i < AmplifierEnvelopeSegmentCount; i++)
+            {
+                b = Amplifier.EnvelopeSegments[i].Level;
+                if (Amplifier.EnvelopeSegments[i].IsMaxSegment)
+                {
+                    b.SetBit(6);
+                }
+                else
+                {
+                    b.UnsetBit(6);
+                }
+                buf.Add(b);
+            }
+            
+            buf.Add(0);
+
+            return buf.ToArray();
         }
     }
 }

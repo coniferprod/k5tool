@@ -285,8 +285,6 @@ namespace k5tool
             return builder.ToString();
         }
 
-        const int HarmonicCount = 63;
-
         public byte[] ToData()
         {
             var buf = new List<byte>();
@@ -308,14 +306,38 @@ namespace k5tool
             buf.Add(Source1Settings.WheelDepth.ToByte());
             buf.Add(Source2Settings.WheelDepth.ToByte());
 
-            // etc.
-
-            // Harmonics
-            for (int i = 0; i < HarmonicCount; i++)
+            // portamento and p. speed - S19
+            byte b = PortamentoSpeed;
+            if (Portamento)
             {
-                buf.Add(Source1.Harmonics[i].Level);
-                buf.Add(Source2.Harmonics[i].Level);
+                b.SetBit(7);
             }
+            buf.Add(b);
+
+            // mode and "pic mode" - S20
+	        b = (byte)PMode;
+            if (SMode == SourceMode.Full)
+            {
+                b.SetBit(2);
+            }
+            else 
+            {
+                b.UnsetBit(2);
+            }
+            buf.Add(b);
+
+            byte[] s1d = Source1.ToData();
+            byte[] s2d = Source2.ToData();
+            int dataLength = s1d.Length;
+            List<byte> sd = new List<byte>();
+            int index = 0;
+            while (index < dataLength)
+            {
+                sd.Add(s1d[index]);
+                sd.Add(s2d[index]);
+                index++;
+            }
+            buf.AddRange(sd);
 
             buf.Add(Convert.ToByte(LFO.Shape));
             buf.Add(LFO.Speed);
@@ -334,7 +356,7 @@ namespace k5tool
                 buf.Add(FormantLevels[i]);
             }
 
-            // TODO: Checksum
+            // TODO: Add checksum
 
             return buf.ToArray();
         }
