@@ -188,7 +188,7 @@ namespace k5tool
                 b = Envelopes[i].Effect;
                 if (Envelopes[i].IsActive)
                 {
-                    b.SetBit(7);
+                    b = b.SetBit(7);
                 }
                 data.Add(b);
             }
@@ -196,7 +196,7 @@ namespace k5tool
             b = (byte)Selection;
             if (IsModulationActive)
             {
-                b.SetBit(7);
+                b = b.SetBit(7);
             }
             data.Add(b);
 
@@ -206,24 +206,24 @@ namespace k5tool
             byte lowNybble = (byte)(Even.EnvelopeNumber - 1);
             if (Even.IsOn)
             {
-                lowNybble.SetBit(3);
+                lowNybble = lowNybble.SetBit(3);
             }
             byte highNybble = (byte)(Odd.EnvelopeNumber - 1);
             if (Odd.IsOn)
             {
-                highNybble.SetBit(3);
+                highNybble = highNybble.SetBit(3);
             }
             data.Add(Util.ByteFromNybbles(highNybble, lowNybble));
 
             lowNybble = (byte)(Fifth.EnvelopeNumber + 1);
             if (Fifth.IsOn)
             {
-                lowNybble.SetBit(3);
+                lowNybble = lowNybble.SetBit(3);
             }
             highNybble = (byte)(Octave.EnvelopeNumber + 1);
             if (Octave.IsOn)
             {
-                highNybble.SetBit(3);
+                highNybble = highNybble.SetBit(3);
             }
             data.Add(Util.ByteFromNybbles(highNybble, lowNybble));
 
@@ -231,7 +231,7 @@ namespace k5tool
             highNybble = (byte)(All.EnvelopeNumber + 1);
             if (All.IsOn)
             {
-                highNybble.SetBit(3);
+                highNybble = highNybble.SetBit(3);
             }
             data.Add(Util.ByteFromNybbles(highNybble, lowNybble));
 
@@ -245,21 +245,21 @@ namespace k5tool
                     b = Envelopes[ei].Segments[si].Level;
                     if (Envelopes[ei].Segments[si].IsMaxSegment)
                     {
-                        b.SetBit(6);
+                        b = b.SetBit(6);
                     }
                     else
                     {
-                        b.UnsetBit(6);
+                        b = b.UnsetBit(6);
                     }
                     if (ei == 0)
                     {
                         if (IsShadowOn)
                         {
-                            b.SetBit(7);
+                            b = b.SetBit(7);
                         }
                         else
                         {
-                            b.UnsetBit(7);
+                            b = b.UnsetBit(7);
                         }
                     }
                     data.Add(b);
@@ -371,19 +371,19 @@ namespace k5tool
             byte b = LFODepth;
             if (IsModulationActive)
             {
-                b.SetBit(6);
+                b = b.SetBit(6);
             }
             else
             {
-                b.UnsetBit(6);
+                b = b.UnsetBit(6);
             }
             if (IsActive)
             {
-                b.SetBit(7);
+                b = b.SetBit(7);
             }
             else
             {
-                b.UnsetBit(7);
+                b = b.UnsetBit(7);
             }
             data.Add(b);
 
@@ -397,11 +397,11 @@ namespace k5tool
                 b = EnvelopeSegments[i].Level;
                 if (EnvelopeSegments[i].IsMaxSegment)
                 {
-                    b.SetBit(6);
+                    b = b.SetBit(6);
                 }
                 else
                 {
-                    b.UnsetBit(6);
+                    b = b.UnsetBit(6);
                 }
                 data.Add(b);
             }
@@ -482,11 +482,11 @@ namespace k5tool
             byte b = LFODepth;
             if (IsActive)
             {
-                b.SetBit(7);
+                b = b.SetBit(7);
             }
             else
             {
-                b.UnsetBit(7);
+                b = b.UnsetBit(7);
             }
             data.Add(b);
             data.Add(AttackVelocityRate.ToByte());
@@ -496,15 +496,17 @@ namespace k5tool
             for (int i = 0; i < Source.AmplifierEnvelopeSegmentCount; i++)
             {
                 b = EnvelopeSegments[i].Rate;
+                System.Console.WriteLine(String.Format("seg={0}, rate={1}, mod={2}", i, EnvelopeSegments[i].Rate, EnvelopeSegments[i].IsRateModulationOn));
                 if (EnvelopeSegments[i].IsRateModulationOn)
                 {
-                    b.SetBit(6);
+                    b = b.SetBit(6);
                 }
                 else
                 {
-                    b.UnsetBit(6);
+                    b = b.UnsetBit(6);
                 }
                 data.Add(b);
+                System.Console.WriteLine(String.Format("{0:X2}H", b));
             }
 
             for (int i = 0; i < Source.AmplifierEnvelopeSegmentCount - 1; i++)
@@ -512,17 +514,17 @@ namespace k5tool
                 b = EnvelopeSegments[i].Level;
                 if (EnvelopeSegments[i].IsMaxSegment)
                 {
-                    b.SetBit(6);
+                    b = b.SetBit(6);
                 }
                 else
                 {
-                    b.UnsetBit(6);
+                    b = b.UnsetBit(6);
                 }
                 data.Add(b);
             }
 
             data.Add(0);
-            
+
             if (data.Count != DataLength)
             {
                 System.Console.WriteLine(String.Format("WARNING: DDA length, expected = {0}, actual = {1}", DataLength, data.Count));
@@ -574,11 +576,11 @@ namespace k5tool
             byte b = Key;  // the tracking key if fixed, 0 if track
             if (KeyTracking == KeyTracking.Fixed)
             {
-                b.SetBit(7);
+                b = b.SetBit(7);
             }
             else
             {
-                b.UnsetBit(7);
+                b = b.UnsetBit(7);
             }
             data.Add(b);  // this looks a bit fishy
 
@@ -594,7 +596,7 @@ namespace k5tool
                 b = PitchEnvelope.Segments[i].Rate;
                 if (PitchEnvelope.IsLooping)
                 {
-                    b.SetBit(7);
+                    b = b.SetBit(7);
                 }
                 data.Add(b);
             }
@@ -872,7 +874,7 @@ namespace k5tool
                         shadow = b.IsBitSet(7);
                     }
                     segments[si].IsMaxSegment = b.IsBitSet(6);
-                    segments[si].Level = (byte)(b & 0x3f);
+                    segments[si].Level = (byte)(b & 0b00111111);
                 }
 
                 for (int si = 0; si < HarmonicEnvelopeSegmentCount; si++)
@@ -880,7 +882,7 @@ namespace k5tool
                     (b, offset) = Util.GetNextByte(data, offset);
                     //System.Console.WriteLine(String.Format("b = {0:X2}H offset = {1}", b, offset));
                     harmonicEnvelopeDataCount++;
-                    segments[si].Rate = (byte)(b & 0x3f);
+                    segments[si].Rate = (byte)(b & 0b00111111);
                 }
 
                 harmSet.Envelopes[ei].Segments = segments;
@@ -905,15 +907,15 @@ namespace k5tool
 
             // DDF (S381 ... S426)
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Filter.Cutoff = (byte)(b & 0x7f);  // just to be sure
+            Filter.Cutoff = (byte)(b & 0b01111111);
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Filter.CutoffModulation = (byte)(b & 0x1f);
+            Filter.CutoffModulation = (byte)(b & 0b00011111);
             (b, offset) = Util.GetNextByte(data, offset);
-            Filter.Slope = (byte)(b & 0x1f);
+            Filter.Slope = (byte)(b & 0b00011111);
     	    (b, offset) = Util.GetNextByte(data, offset);
-            Filter.SlopeModulation = (byte)(b & 0x1f);
+            Filter.SlopeModulation = (byte)(b & 0b00011111);
             (b, offset) = Util.GetNextByte(data, offset);
-            Filter.FlatLevel = (byte)(b & 0x1f);
+            Filter.FlatLevel = (byte)(b & 0b00011111);
     	    (b, offset) = Util.GetNextByte(data, offset);
             Filter.VelocityDepth = b.ToSignedByte();
     	    (b, offset) = Util.GetNextByte(data, offset);
@@ -927,7 +929,7 @@ namespace k5tool
     	    (b, offset) = Util.GetNextByte(data, offset);
             Filter.IsActive = b.IsBitSet(7);
             Filter.IsModulationActive = b.IsBitSet(6);
-            Filter.LFODepth = (byte)(b & 0x1f);
+            Filter.LFODepth = (byte)(b & 0b00011111);
 
             Filter.EnvelopeSegments = new FilterEnvelopeSegment[FilterEnvelopeSegmentCount];
             for (int i = 0; i < FilterEnvelopeSegmentCount; i++)
@@ -954,7 +956,7 @@ namespace k5tool
 
     	    (b, offset) = Util.GetNextByte(data, offset);
             Amplifier.IsActive = b.IsBitSet(7);
-            Amplifier.LFODepth = (byte)(b & 0x7f);
+            Amplifier.LFODepth = (byte)(b & 0b01111111);
 
     	    (b, offset) = Util.GetNextByte(data, offset);
             Amplifier.AttackVelocityRate = b.ToSignedByte();
@@ -973,8 +975,10 @@ namespace k5tool
             for (int i = 0; i < AmplifierEnvelopeSegmentCount; i++)
             {
         	    (b, offset) = Util.GetNextByte(data, offset);
+                System.Console.WriteLine(String.Format("{0:X2}", b));
                 Amplifier.EnvelopeSegments[i].IsRateModulationOn = b.IsBitSet(6);
-                Amplifier.EnvelopeSegments[i].Rate = (byte)(b & 0x3f);
+                Amplifier.EnvelopeSegments[i].Rate = (byte)(b & 0b00111111);
+                System.Console.WriteLine(String.Format("{0:X2} => rate={1} mod={2}", b, Amplifier.EnvelopeSegments[i].Rate, Amplifier.EnvelopeSegments[i].IsRateModulationOn));
             }
 
             // Then, the levels and max settings:
@@ -982,7 +986,7 @@ namespace k5tool
             {
         	    (b, offset) = Util.GetNextByte(data, offset);
                 Amplifier.EnvelopeSegments[i].IsMaxSegment = b.IsBitSet(6);
-                Amplifier.EnvelopeSegments[i].Level = (byte)(b & 0x3f);
+                Amplifier.EnvelopeSegments[i].Level = (byte)(b & 0b00111111);
             }
 
             // Actually, S467 and S468 are marked as zero in the SysEx description:
@@ -1032,18 +1036,18 @@ namespace k5tool
             while (count < HarmonicCount - 1)
             {
                 lowNybble = (byte)(Harmonics[count].EnvelopeNumber - 1);
-                lowNybble.UnsetBit(2);
+                lowNybble = lowNybble.UnsetBit(2);
                 if (Harmonics[count].IsModulationActive)
                 {
-                    lowNybble.SetBit(3);
+                    lowNybble = lowNybble.SetBit(3);
                 }
                 count++;
 
                 highNybble = (byte)(Harmonics[count].EnvelopeNumber - 1);
-                highNybble.UnsetBit(2);
+                highNybble = highNybble.UnsetBit(2);
                 if (Harmonics[count].IsModulationActive)
                 {
-                    highNybble.SetBit(3);
+                    highNybble = highNybble.SetBit(3);
                 }
                 count++;
 
@@ -1054,10 +1058,10 @@ namespace k5tool
 
             // harmonic 63
             b = (byte)(Harmonics[count].EnvelopeNumber - 1);
-            b.UnsetBit(2);
+            b = b.UnsetBit(2);
             if (Harmonics[count].IsModulationActive)
             {
-                b.SetBit(3);
+                b = b.SetBit(3);
             }
             buf.Add(b);
 
