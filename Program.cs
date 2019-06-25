@@ -95,15 +95,14 @@ namespace k5tool
                 {
                     System.Console.WriteLine(s.ToString());
 
-                    //System.Console.WriteLine("Original single data:");
-                    //System.Console.WriteLine(Util.HexDump(data));
+                    System.Console.WriteLine(String.Format("Original single data = {0}", data.Length));
+                    System.Console.WriteLine(Util.HexDump(data));
 
                     byte[] sd = s.ToData();
                     //System.Console.WriteLine("Converted to data model and back to bytes:");
-                    //System.Console.WriteLine(Util.HexDump(sd));
+                    System.Console.WriteLine(String.Format("Emitted single data = {0}", sd.Length));
+                    System.Console.WriteLine(Util.HexDump(sd));
 
-                    //List<byte> originalData = new List<byte>(data);
-                    //List<byte> convertedData = new List<byte>(sd);
                     bool result = false;
                     int index = -1;
                     (result, index) = Util.ByteArrayCompare(data, sd);

@@ -381,6 +381,7 @@ namespace k5tool
 
             byte[] s1d = Source1.ToData();
             byte[] s2d = Source2.ToData();
+            System.Console.WriteLine(String.Format("S1 data = {0} bytes, S2 data = {1} bytes", s1d.Length, s2d.Length));
 
             // Interleave the two byte arrays:
             int dataLength = s1d.Length;

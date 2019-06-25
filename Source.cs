@@ -171,6 +171,8 @@ namespace k5tool
             return builder.ToString();
         }
 
+        const int DataLength = 16 + 4 * 12; // without the 63 harmonic levels
+
         public byte[] ToData()
         {
             List<byte> data = new List<byte>();
@@ -269,6 +271,11 @@ namespace k5tool
                 }
             }
 
+            if (data.Count != DataLength)
+            {
+                System.Console.WriteLine(String.Format("WARNING: DHG length, expected = {0}, actual = {1}", DataLength, data.Count));
+            }
+
             return data.ToArray();
         }
     }
@@ -344,6 +351,8 @@ namespace k5tool
             return builder.ToString();
         }
 
+        const int DataLength = 23;
+
         public byte[] ToData()
         {
             List<byte> data = new List<byte>();
@@ -395,6 +404,11 @@ namespace k5tool
                     b.UnsetBit(6);
                 }
                 data.Add(b);
+            }
+
+            if (data.Count != DataLength)
+            {
+                System.Console.WriteLine(String.Format("WARNING: DDF length, expected = {0}, actual = {1}", DataLength, data.Count));
             }
 
             return data.ToArray();
@@ -456,6 +470,8 @@ namespace k5tool
             return builder.ToString();
         }
 
+        const int DataLength = 21;
+
         public byte[] ToData()
         {
             List<byte> data = new List<byte>();
@@ -505,6 +521,93 @@ namespace k5tool
                 data.Add(b);
             }
 
+            if (data.Count != DataLength)
+            {
+                System.Console.WriteLine(String.Format("WARNING: DDA length, expected = {0}, actual = {1}", DataLength, data.Count));
+            }
+
+            return data.ToArray();
+        }
+    }
+
+    public struct PitchSettings
+    {
+        public sbyte Coarse; // 0~±48
+        public sbyte Fine; // 0~±31
+        public KeyTracking KeyTracking;
+        public byte Key;  // the keytracking key, zero if not used
+        public sbyte EnvelopeDepth; // 0~±24
+        public sbyte PressureDepth; // 0~±31
+        public byte BenderDepth; // 0~24
+        public sbyte VelocityEnvelopeDepth; // 0~±31
+        public byte LFODepth; // 0~31
+        public sbyte PressureLFODepth; // 0~±31
+        public PitchEnvelope PitchEnvelope;
+
+        const int DataLength = 21;
+
+        public override string ToString()
+        {
+            return String.Format("*DFG*              \n\n" +
+                "COARSE= {0,2}        <DEPTH>\n" + 
+                "FINE  = {1,2}        ENV= {2,2}-VEL {3}\n" + 
+                "                  PRS= {4}\n" + 
+                "                  LFO= {5,2}-PRS= {6,3}\n" + 
+                "KEY    ={7}     BND= {8}\n" + 
+                "FIXNO  ={9}\n\n", 
+                Coarse, Fine, EnvelopeDepth, VelocityEnvelopeDepth,
+                PressureDepth, LFODepth, PressureLFODepth,
+                KeyTracking, BenderDepth,
+                Key) + 
+                PitchEnvelope.ToString();
+        }
+
+        public byte[] ToData()
+        {
+            List<byte> data = new List<byte>();
+
+            data.Add(Coarse.ToByte());
+            data.Add(Fine.ToByte());
+
+            byte b = Key;  // the tracking key if fixed, 0 if track
+            if (KeyTracking == KeyTracking.Fixed)
+            {
+                b.SetBit(7);
+            }
+            else
+            {
+                b.UnsetBit(7);
+            }
+            data.Add(b);  // this looks a bit fishy
+
+            data.Add(EnvelopeDepth.ToByte());
+            data.Add(PressureDepth.ToByte());
+            data.Add(BenderDepth);
+            data.Add(VelocityEnvelopeDepth.ToByte());
+            data.Add(LFODepth);
+            data.Add(PressureLFODepth.ToByte());
+
+            for (int i = 0; i < Source.PitchEnvelopeSegmentCount; i++)
+            {
+                b = PitchEnvelope.Segments[i].Rate;
+                if (PitchEnvelope.IsLooping)
+                {
+                    b.SetBit(7);
+                }
+                data.Add(b);
+            }
+
+            for (int i = 0; i < Source.PitchEnvelopeSegmentCount; i++)
+            {
+                sbyte sb = PitchEnvelope.Segments[i].Level;
+                data.Add(sb.ToByte());
+            }
+
+            if (data.Count != DataLength)
+            {
+                System.Console.WriteLine(String.Format("WARNING: DFG length, expected = {0}, actual = {1}", DataLength, data.Count));
+            }
+
             return data.ToArray();
         }
     }
@@ -519,17 +622,7 @@ namespace k5tool
         public const int FilterEnvelopeSegmentCount = 6;
         public const int AmplifierEnvelopeSegmentCount = 7;
     
-        public sbyte Coarse; // 0~±48
-        public sbyte Fine; // 0~±31
-        public KeyTracking KeyTracking;
-        public byte Key;  // the keytracking key, zero if not used
-        public sbyte EnvelopeDepth; // 0~±24
-        public sbyte PressureDepth; // 0~±31
-        public byte BenderDepth; // 0~24
-        public sbyte VelocityEnvelopeDepth; // 0~±31
-        public byte LFODepth; // 0~31
-        public sbyte PressureLFODepth; // 0~±31
-        public PitchEnvelope PitchEnvelope;
+        public PitchSettings Pitch;
         public Harmonic[] Harmonics;
         public HarmonicSettings HarmonicSettings;
         public Filter Filter;
@@ -541,75 +634,83 @@ namespace k5tool
         {
             SourceNumber = number;
 
+            System.Console.WriteLine($"S{SourceNumber} data:");
+            System.Console.WriteLine(Util.HexDump(data));
+
             int offset = 0;
             byte b = 0;  // reused when getting the next byte
             List<byte> buf = new List<byte>();
 
             // DFG
+            Pitch = new PitchSettings();
+
             (b, offset) = Util.GetNextByte(data, offset);
-            Coarse = b.ToSignedByte();
+            Pitch.Coarse = b.ToSignedByte();
             buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
-            Fine = b.ToSignedByte();
+            Pitch.Fine = b.ToSignedByte();
             buf.Add(b);
 
 	        (b, offset) = Util.GetNextByte(data, offset);
 	        if (b.IsBitSet(7))
             {
-                KeyTracking = KeyTracking.Fixed;
-                Key = (byte)(b & 0x7f);
+                Pitch.KeyTracking = KeyTracking.Fixed;
+                Pitch.Key = (byte)(b & 0x7f);
             }
             else 
             {
-                KeyTracking = KeyTracking.Track;
-                Key = 0;  // ignored in this case
+                Pitch.KeyTracking = KeyTracking.Track;
+                Pitch.Key = 0;  // ignored in this case
             }
             // TODO: Check that the SysEx spec gets the meaning of b7 right
             buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
-            EnvelopeDepth = b.ToSignedByte();
+            Pitch.EnvelopeDepth = b.ToSignedByte();
             buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
-            PressureDepth = b.ToSignedByte();
+            Pitch.PressureDepth = b.ToSignedByte();
             buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
-            BenderDepth = b;
+            Pitch.BenderDepth = b;
             buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
-            VelocityEnvelopeDepth = b.ToSignedByte();
+            Pitch.VelocityEnvelopeDepth = b.ToSignedByte();
             buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
-            LFODepth = b;
+            Pitch.LFODepth = b;
             buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
-            PressureLFODepth = b.ToSignedByte();
+            Pitch.PressureLFODepth = b.ToSignedByte();
             buf.Add(b);
 
-            PitchEnvelope.Segments = new PitchEnvelopeSegment[PitchEnvelopeSegmentCount];
+            Pitch.PitchEnvelope.Segments = new PitchEnvelopeSegment[PitchEnvelopeSegmentCount];
             for (int i = 0; i < PitchEnvelopeSegmentCount; i++)
             {
                 (b, offset) = Util.GetNextByte(data, offset);
                 buf.Add(b);
                 if (i == 0)
                 {
-                    PitchEnvelope.IsLooping = b.IsBitSet(7);
-                    PitchEnvelope.Segments[i].Rate = (byte)(b & 0x7f);
+                    Pitch.PitchEnvelope.IsLooping = b.IsBitSet(7);
+                    Pitch.PitchEnvelope.Segments[i].Rate = (byte)(b & 0x7f);
                 }
                 else
                 {
-                    PitchEnvelope.Segments[i].Rate = b;
+                    Pitch.PitchEnvelope.Segments[i].Rate = b;
                 }
+            }
 
+            for (int i = 0; i < PitchEnvelopeSegmentCount; i++)
+            {
                 (b, offset) = Util.GetNextByte(data, offset);
                 buf.Add(b);
-                PitchEnvelope.Segments[i].Level = b.ToSignedByte();
+                Pitch.PitchEnvelope.Segments[i].Level = b.ToSignedByte();
             }
 
             //System.Console.WriteLine(String.Format("Parsed DFG bytes:\n{0}", Util.HexDump(buf.ToArray())));
@@ -898,18 +999,7 @@ namespace k5tool
              */
 
             return 
-                String.Format("*DFG*              \n\n" +
-                "COARSE= {0,2}        <DEPTH>\n" + 
-                "FINE  = {1,2}        ENV= {2,2}-VEL {3}\n" + 
-                "                  PRS= {4}\n" + 
-                "                  LFO= {5,2}-PRS= {6,3}\n" + 
-                "KEY    ={7}     BND= {8}\n" + 
-                "FIXNO  ={9}\n\n", 
-                Coarse, Fine, EnvelopeDepth, VelocityEnvelopeDepth,
-                PressureDepth, LFODepth, PressureLFODepth,
-                KeyTracking, BenderDepth,
-                Key) + 
-                PitchEnvelope.ToString() +
+                Pitch.ToString() + 
                 //harmonicBuilder.ToString() + 
                 HarmonicSettings.ToString() + 
                 Filter.ToString() +
@@ -920,52 +1010,15 @@ namespace k5tool
         {
             var buf = new List<byte>();
 
-            // DFG
-            buf.Add(Coarse.ToByte());
-            buf.Add(Fine.ToByte());
+            buf.AddRange(Pitch.ToData());
+            //System.Console.WriteLine(String.Format("S{0} DFG:\n{1}", SourceNumber, Util.HexDump(Pitch.ToData())));
 
-            byte b = Key;  // the tracking key if fixed, 0 if track
-            if (KeyTracking == KeyTracking.Fixed)
-            {
-                b.SetBit(7);
-            }
-            else
-            {
-                b.UnsetBit(7);
-            }
-            buf.Add(b);  // this looks a bit fishy
-
-            buf.Add(EnvelopeDepth.ToByte());
-            buf.Add(PressureDepth.ToByte());
-            buf.Add(BenderDepth);
-            buf.Add(VelocityEnvelopeDepth.ToByte());
-            buf.Add(LFODepth);
-            buf.Add(PressureLFODepth.ToByte());
-            // so far, so good
-
-            for (int i = 0; i < PitchEnvelopeSegmentCount; i++)
-            {
-                b = PitchEnvelope.Segments[i].Rate;
-                if (PitchEnvelope.IsLooping)
-                {
-                    b.SetBit(7);
-                }
-                buf.Add(b);
-            }
-
-            for (int i = 0; i < PitchEnvelopeSegmentCount; i++)
-            {
-                sbyte sb = PitchEnvelope.Segments[i].Level;
-                buf.Add(sb.ToByte());
-            }
-
-            //System.Console.WriteLine(String.Format("Emitted DFG bytes:\n{0}", Util.HexDump(buf.ToArray())));
-            
             for (int i = 0; i < HarmonicCount; i++)
             {
                 buf.Add(Harmonics[i].Level);
             }
 
+            byte b = 0;
             byte lowNybble = 0, highNybble = 0;
             int count = 0;
             // Harmonics 1...62
@@ -1001,8 +1054,6 @@ namespace k5tool
             buf.AddRange(HarmonicSettings.ToData());
             buf.AddRange(Filter.ToData());
             buf.AddRange(Amplifier.ToData());
-
-            System.Console.WriteLine(String.Format("S{0} bytes:\n{1}", SourceNumber, Util.HexDump(buf.ToArray())));
 
             return buf.ToArray();
         }
