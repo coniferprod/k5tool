@@ -165,6 +165,14 @@ namespace k5tool
                     System.Console.WriteLine($"Writing SysEx data to '{newFileName}'...");
                     File.WriteAllBytes(newFileName, newData.ToArray());
                 }
+                else if (command.Equals("generate"))
+                {
+                    foreach (string waveformName in LeiterEngine.WaveformParameters.Keys)
+                    {
+                        byte[] harmonicLevels = LeiterEngine.GetHarmonicLevels(waveformName, 63);
+                        System.Console.WriteLine(String.Format("Harmonic levels for '{0}':\n{1}", waveformName, Util.HexDump(harmonicLevels)));
+                    }
+                }
             }
 
             return 0;
