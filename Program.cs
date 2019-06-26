@@ -1,7 +1,9 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+
+using Newtonsoft.Json;
+
 
 namespace k5tool
 {
@@ -121,7 +123,9 @@ namespace k5tool
                     {
                         System.Console.WriteLine("Byte arrays are identical, yay!");
                     }
-                    
+
+                    string output = JsonConvert.SerializeObject(s, Formatting.Indented);
+                    System.Console.WriteLine(String.Format("Single patch as JSON:\n{0}", output));
                 }
                 else if (command.Equals("list"))
                 {

@@ -772,6 +772,10 @@ namespace k5tool
                 count += 2;
             }
 
+            // NOTE: Seems that for harmonics with zero level and modulation off, the envelope number
+            // could be something else than 0...3 (1...4). For example, 12 is a typical value.
+            // Probably doesn't matter.
+
 	        (b, offset) = Util.GetNextByte(data, offset);
             (highNybble, lowNybble) = Util.NybblesFromByte(b);
 	        //harmData.Add((byte)(b & 0x0f)); // AND with 0b00001111
@@ -795,7 +799,7 @@ namespace k5tool
             {
 		        Harmonics[i].IsModulationActive = harmData[i].IsBitSet(2);
 		        Harmonics[i].EnvelopeNumber = (byte)(harmData[i] + 1);  // add one to make env number 1...4
-                //System.Console.WriteLine(String.Format("H{0} IsMod = {1} Env = {2}", i, Harmonics[i].IsModulationActive, Harmonics[i].EnvelopeNumber));
+                System.Console.WriteLine(String.Format("H{0} IsMod = {1} Env = {2}", i, Harmonics[i].IsModulationActive, Harmonics[i].EnvelopeNumber));
 	        }
 
             // DHG harmonic settings (S253 ... S260)
@@ -1119,7 +1123,8 @@ namespace k5tool
                 count++;
 
                 b = Util.ByteFromNybbles(highNybble, lowNybble);
-                //System.Console.WriteLine(String.Format("ToData: H{0} {1:X2} {2:X2} => {3:X2}", count + 1, highNybble, lowNybble, b));
+                System.Console.WriteLine(String.Format("ToData: H{0} {1:X2} {2:X2} => {3:X2}", count + 1, highNybble, lowNybble, b));
+                //System.Console.WriteLine(String.Format("H{0} IsMod = {1} Env = {2}", i, Harmonics[i].IsModulationActive, Harmonics[i].EnvelopeNumber));
                 buf.Add(b);
 
                 harmonicsBytes.Add(b);
@@ -1134,7 +1139,9 @@ namespace k5tool
                 b = b.SetBit(3);
             }
             System.Console.WriteLine("H{0} = {1:X2}", count + 1, b);
-            //System.Console.WriteLine(String.Format("ToData: H{0}: original byte = {1:X2}, final byte = {2:X2} (mod = {3})", count + 1, originalByte, b, Harmonics[count].IsModulationActive));
+            System.Console.WriteLine(String.Format("ToData: H{0}: original byte = {1:X2}, final byte = {2:X2} (mod = {3})", count + 1, originalByte, b, Harmonics[count].IsModulationActive));
+            //System.Console.WriteLine(String.Format("H{0} IsMod = {1} Env = {2}", i, Harmonics[i].IsModulationActive, Harmonics[i].EnvelopeNumber));
+
             byte extraByte = (byte)(Harmonic63bis.EnvelopeNumber - 1);
             if (Harmonic63bis.IsModulationActive)
             {

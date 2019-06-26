@@ -117,7 +117,10 @@ namespace k5tool
         public Source Source2;
         public LFO LFO;
         public bool IsFormantOn;  // true Digital Formant filter is on
-        public byte[] FormantLevels;  // levels for bands C-1 ... C9 (0 ~ 63)
+        
+        public int[] FormantLevels;  // levels for bands C-1 ... C9 (0 ~ 63)
+        // Used int[] and not byte[] to get the correct JSON serialization
+
         public byte Filler;  // retain the byte before the checksum (should be zero but not guaranteed)
 
         public Single(byte[] data)
@@ -259,7 +262,7 @@ namespace k5tool
             System.Console.WriteLine(String.Format("S2 keyscaling = {0}", Source2Settings.KeyScaling));
 
             // DFT (S479 ... S489)
-            FormantLevels = new byte[FormantLevelCount];
+            FormantLevels = new int[FormantLevelCount];
             for (int i = 0; i < FormantLevelCount; i++)
             {
         	    (b, offset) = Util.GetNextByte(data, offset);
@@ -412,7 +415,7 @@ namespace k5tool
 
             for (int i = 0; i < FormantLevelCount; i++)
             {
-                buf.Add(FormantLevels[i]);
+                buf.Add((byte)FormantLevels[i]);
             }
 
             buf.Add(Filler);
