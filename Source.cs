@@ -100,6 +100,13 @@ namespace k5tool
 	    public byte EnvelopeNumber;  // assigns the selected harmonic to one of the four DHG envelopes
     }
 
+    public enum HarmonicAngle
+    {
+        Negative = 0,
+        Neutral,
+        Positive
+    }
+
     public struct HarmonicSettings
     {
 	    public sbyte VelocityDepth;  // 0~±31
@@ -118,7 +125,7 @@ namespace k5tool
 	    public HarmonicModulation Fifth;
 	    public HarmonicModulation All;
 
-    	public byte Angle; // 0/-, 1/0, 1/+ (maybe should be 2/+ ?)
+    	public HarmonicAngle Angle; // 0/-, 1/0, 1/+ (maybe should be 2/+ ?)
 	    public byte HarmonicNumber; // 1~63
 
 	    public bool IsShadowOn;  // this is in S285 bit 7
@@ -213,29 +220,35 @@ namespace k5tool
             {
                 highNybble = highNybble.SetBit(3);
             }
-            data.Add(Util.ByteFromNybbles(highNybble, lowNybble));
+            b = Util.ByteFromNybbles(highNybble, lowNybble);
+            System.Console.WriteLine(String.Format("odd-even byte = {0:X2}", b));
+            data.Add(b);
 
-            lowNybble = (byte)(Fifth.EnvelopeNumber + 1);
+            lowNybble = (byte)(Fifth.EnvelopeNumber - 1);
             if (Fifth.IsOn)
             {
                 lowNybble = lowNybble.SetBit(3);
             }
-            highNybble = (byte)(Octave.EnvelopeNumber + 1);
+            highNybble = (byte)(Octave.EnvelopeNumber - 1);
             if (Octave.IsOn)
             {
                 highNybble = highNybble.SetBit(3);
             }
-            data.Add(Util.ByteFromNybbles(highNybble, lowNybble));
+            b = Util.ByteFromNybbles(highNybble, lowNybble);
+            System.Console.WriteLine(String.Format("fifth-octave byte = {0:X2}", b));
+            data.Add(b);
 
             lowNybble = 0;
-            highNybble = (byte)(All.EnvelopeNumber + 1);
+            highNybble = (byte)(All.EnvelopeNumber - 1);
             if (All.IsOn)
             {
                 highNybble = highNybble.SetBit(3);
             }
-            data.Add(Util.ByteFromNybbles(highNybble, lowNybble));
+            b = Util.ByteFromNybbles(highNybble, lowNybble);
+            System.Console.WriteLine(String.Format("all byte = {0:X2}", b));
+            data.Add(b);
 
-            data.Add(Angle);
+            data.Add((byte)Angle);
             data.Add(HarmonicNumber);
 
             for (int ei = 0; ei < Source.HarmonicEnvelopeCount; ei++)
@@ -411,6 +424,8 @@ namespace k5tool
                 System.Console.WriteLine(String.Format("WARNING: DDF length, expected = {0}, actual = {1}", DataLength, data.Count));
             }
 
+            System.Console.WriteLine(String.Format("DDF data:\n{0}", Util.HexDump(data.ToArray())));
+
             return data.ToArray();
         }
     }
@@ -496,7 +511,7 @@ namespace k5tool
             for (int i = 0; i < Source.AmplifierEnvelopeSegmentCount; i++)
             {
                 b = EnvelopeSegments[i].Rate;
-                System.Console.WriteLine(String.Format("seg={0}, rate={1}, mod={2}", i, EnvelopeSegments[i].Rate, EnvelopeSegments[i].IsRateModulationOn));
+                //System.Console.WriteLine(String.Format("seg={0}, rate={1}, mod={2}", i, EnvelopeSegments[i].Rate, EnvelopeSegments[i].IsRateModulationOn));
                 if (EnvelopeSegments[i].IsRateModulationOn)
                 {
                     b = b.SetBit(6);
@@ -506,7 +521,7 @@ namespace k5tool
                     b = b.UnsetBit(6);
                 }
                 data.Add(b);
-                System.Console.WriteLine(String.Format("{0:X2}H", b));
+                //System.Console.WriteLine(String.Format("{0:X2}H", b));
             }
 
             for (int i = 0; i < Source.AmplifierEnvelopeSegmentCount - 1; i++)
@@ -569,11 +584,15 @@ namespace k5tool
         public byte[] ToData()
         {
             List<byte> data = new List<byte>();
+            byte b = 0;
 
             data.Add(Coarse.ToByte());
-            data.Add(Fine.ToByte());
+            //System.Console.WriteLine(String.Format("coarse = {0:X2}", b));
 
-            byte b = Key;  // the tracking key if fixed, 0 if track
+            data.Add(Fine.ToByte());
+            //System.Console.WriteLine(String.Format("fine = {0:X2}", b));
+
+            b = Key;  // the tracking key if fixed, 0 if track
             if (KeyTracking == KeyTracking.Fixed)
             {
                 b = b.SetBit(7);
@@ -582,10 +601,15 @@ namespace k5tool
             {
                 b = b.UnsetBit(7);
             }
-            data.Add(b);  // this looks a bit fishy
+            data.Add(b);
+            //System.Console.WriteLine(String.Format("key tracking = {0:X2}", b));
 
             data.Add(EnvelopeDepth.ToByte());
+            //System.Console.WriteLine(String.Format("envelope depth = {0:X2}", b));
+
             data.Add(PressureDepth.ToByte());
+            //System.Console.WriteLine(String.Format("pressure depth = {0:X2}", b));
+
             data.Add(BenderDepth);
             data.Add(VelocityEnvelopeDepth.ToByte());
             data.Add(LFODepth);
@@ -594,9 +618,14 @@ namespace k5tool
             for (int i = 0; i < Source.PitchEnvelopeSegmentCount; i++)
             {
                 b = PitchEnvelope.Segments[i].Rate;
-                if (PitchEnvelope.IsLooping)
+
+                // Set the envelope looping bit for the first rate only:
+                if (i == 0)
                 {
-                    b = b.SetBit(7);
+                    if (PitchEnvelope.IsLooping)
+                    {
+                        b = b.SetBit(7);
+                    }
                 }
                 data.Add(b);
             }
@@ -628,6 +657,7 @@ namespace k5tool
     
         public PitchSettings Pitch;
         public Harmonic[] Harmonics;
+        public Harmonic Harmonic63bis;
         public HarmonicSettings HarmonicSettings;
         public Filter Filter;
         public Amplifier Amplifier;
@@ -650,49 +680,40 @@ namespace k5tool
 
             (b, offset) = Util.GetNextByte(data, offset);
             Pitch.Coarse = b.ToSignedByte();
-            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             Pitch.Fine = b.ToSignedByte();
-            buf.Add(b);
 
 	        (b, offset) = Util.GetNextByte(data, offset);
 	        if (b.IsBitSet(7))
             {
                 Pitch.KeyTracking = KeyTracking.Fixed;
-                Pitch.Key = (byte)(b & 0x7f);
+                Pitch.Key = (byte)(b & 0b01111111);
             }
             else 
             {
                 Pitch.KeyTracking = KeyTracking.Track;
-                Pitch.Key = 0;  // ignored in this case
+                Pitch.Key = (byte)(b & 0b01111111);
             }
             // TODO: Check that the SysEx spec gets the meaning of b7 right
-            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             Pitch.EnvelopeDepth = b.ToSignedByte();
-            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             Pitch.PressureDepth = b.ToSignedByte();
-            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             Pitch.BenderDepth = b;
-            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             Pitch.VelocityEnvelopeDepth = b.ToSignedByte();
-            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             Pitch.LFODepth = b;
-            buf.Add(b);
 
             (b, offset) = Util.GetNextByte(data, offset);
             Pitch.PressureLFODepth = b.ToSignedByte();
-            buf.Add(b);
 
             Pitch.PitchEnvelope.Segments = new PitchEnvelopeSegment[PitchEnvelopeSegmentCount];
             for (int i = 0; i < PitchEnvelopeSegmentCount; i++)
@@ -717,7 +738,7 @@ namespace k5tool
                 Pitch.PitchEnvelope.Segments[i].Level = b.ToSignedByte();
             }
 
-            //System.Console.WriteLine(String.Format("Parsed DFG bytes:\n{0}", Util.HexDump(buf.ToArray())));
+            System.Console.WriteLine(String.Format("Parsed DFG bytes:\n{0}", Util.HexDump(buf.ToArray())));
             
             // DHG
 
@@ -752,9 +773,22 @@ namespace k5tool
             }
 
 	        (b, offset) = Util.GetNextByte(data, offset);
-	        harmData.Add((byte)(b & 0x0f)); // AND with 0b00001111
+            (highNybble, lowNybble) = Util.NybblesFromByte(b);
+	        //harmData.Add((byte)(b & 0x0f)); // AND with 0b00001111
+            //harmData.Add(b);
+            harmData.Add(highNybble);
+            Harmonic63bis = new Harmonic();
+            Harmonic63bis.IsModulationActive = lowNybble.IsBitSet(2);
+            Harmonic63bis.EnvelopeNumber = (byte)(lowNybble + 1);
+            Harmonic63bis.Level = 99;  // don't care really
+
             //System.Console.Write(String.Format("{0,2}:{1,2}({1:X2}H) ", count + 1, b));
             //System.Console.WriteLine();
+
+            // OK, here's the thing: there might be an error in the Kawai K5 System Exclusive specification
+            // regarding the last harmonic (63) and how it is packed into a byte. Since it is not a very prominent
+            // harmonic, we leave it as it is, even though it means that the comparison between parsed and
+            // emitted SysEx data will fail. But it is close enough for now.
 
 	        // Now harmData should have data for all the 63 harmonics
 	        for (int i = 0; i < Harmonics.Length; i++) 
@@ -818,40 +852,66 @@ namespace k5tool
 
             // Harmonic envelope selections = 0/1, 1/2, 2/3, 3/4
     	    (b, offset) = Util.GetNextByte(data, offset);
+            (highNybble, lowNybble) = Util.NybblesFromByte(b);
+            System.Console.WriteLine(String.Format("b = {0:X2}, low = {1:X2}, high = {2:X2}", b, lowNybble, highNybble));
             // odd and even are in the same byte
         	harmSet.Odd = new HarmonicModulation 
             { 
-                IsOn = b.IsBitSet(7), 
-                EnvelopeNumber = (byte)(((b & 0x30) >> 4) + 1) 
+                IsOn = highNybble.IsBitSet(3), 
+                EnvelopeNumber = (byte)((highNybble & 0b00000011) + 1) 
             };
 	        harmSet.Even = new HarmonicModulation 
             {
-		        IsOn = b.IsBitSet(3),
-		        EnvelopeNumber = (byte)((b & 0x03) + 1)
+		        IsOn = lowNybble.IsBitSet(3),
+		        EnvelopeNumber = (byte)((lowNybble & 0b00000011) + 1)
 	        };
 
     	    (b, offset) = Util.GetNextByte(data, offset);
+            (highNybble, lowNybble) = Util.NybblesFromByte(b);
+            System.Console.WriteLine(String.Format("b = {0:X2}, low = {1:X2}, high = {2:X2}", b, lowNybble, highNybble));
             // octave and fifth are in the same byte
         	harmSet.Octave = new HarmonicModulation 
             {
-		        IsOn = b.IsBitSet(7),
-		        EnvelopeNumber = (byte)(((b & 0x30) >> 4) + 1)
+		        IsOn = highNybble.IsBitSet(3),
+		        EnvelopeNumber = (byte)((highNybble & 0b00000011) + 1)
             };
         	harmSet.Fifth = new HarmonicModulation
             {
-		        IsOn = b.IsBitSet(3),
-		        EnvelopeNumber = (byte)((b & 0x03) + 1)
+		        IsOn = lowNybble.IsBitSet(3),
+		        EnvelopeNumber = (byte)((lowNybble & 0b00000011) + 1)
             };
 
     	    (b, offset) = Util.GetNextByte(data, offset);
+            (highNybble, lowNybble) = Util.NybblesFromByte(b);
+            System.Console.WriteLine(String.Format("b = {0:X2}, low = {1:X2}, high = {2:X2}", b, lowNybble, highNybble));
         	harmSet.All = new HarmonicModulation
             {
-		        IsOn = b.IsBitSet(7),
-		        EnvelopeNumber = (byte)(((b & 0x30) >> 4) + 1)
+		        IsOn = highNybble.IsBitSet(3),
+		        EnvelopeNumber = (byte)((highNybble & 0b00000011) + 1)
             };
 
+            System.Console.WriteLine(String.Format("odd :{0}/{1}", harmSet.Odd.IsOn ? "Y" : "N", harmSet.Odd.EnvelopeNumber));
+            System.Console.WriteLine(String.Format("even:{0}/{1}", harmSet.Even.IsOn ? "Y" : "N", harmSet.Even.EnvelopeNumber));
+            System.Console.WriteLine(String.Format("oct :{0}/{1}", harmSet.Octave.IsOn ? "Y" : "N", harmSet.Octave.EnvelopeNumber));
+            System.Console.WriteLine(String.Format("5th :{0}/{1}", harmSet.Fifth.IsOn ? "Y" : "N", harmSet.Fifth.EnvelopeNumber));
+            System.Console.WriteLine(String.Format("all :{0}/{1}", harmSet.All.IsOn ? "Y" : "N", harmSet.All.EnvelopeNumber));
+
     	    (b, offset) = Util.GetNextByte(data, offset);
-        	harmSet.Angle = b;
+            switch (b)
+            {
+            case 0:
+                harmSet.Angle = HarmonicAngle.Negative;
+                break;
+            case 1:
+                harmSet.Angle = HarmonicAngle.Neutral;
+                break;
+            case 2:
+                harmSet.Angle = HarmonicAngle.Positive;
+                break;
+            default:
+                harmSet.Angle = HarmonicAngle.Neutral;  // just to keep the compiler happy
+                break;
+            }
 
     	    (b, offset) = Util.GetNextByte(data, offset);
 	        harmSet.HarmonicNumber = b;
@@ -944,6 +1004,8 @@ namespace k5tool
                 Filter.EnvelopeSegments[i].Level = (byte)(b & 0x3f);
             }
 
+            //System.Console.WriteLine(String.Format("DDF:\n{0}", Util.HexDump(Filter.ToData())));
+
             // DDA (S427 ... S468)
     	    (b, offset) = Util.GetNextByte(data, offset);
             Amplifier.AttackVelocityDepth = b.ToSignedByte();
@@ -1029,11 +1091,12 @@ namespace k5tool
                 buf.Add(Harmonics[i].Level);
             }
 
+            List<byte> harmonicsBytes = new List<byte>();
             byte b = 0;
             byte lowNybble = 0, highNybble = 0;
             int count = 0;
-            // Harmonics 1...62
-            while (count < HarmonicCount - 1)
+            // Harmonics 1...62 (0...61)
+            while (count < HarmonicCount - 2)
             {
                 lowNybble = (byte)(Harmonics[count].EnvelopeNumber - 1);
                 lowNybble = lowNybble.UnsetBit(2);
@@ -1041,6 +1104,8 @@ namespace k5tool
                 {
                     lowNybble = lowNybble.SetBit(3);
                 }
+                System.Console.WriteLine("H{0} = {1:X2}", count + 1, lowNybble);
+
                 count++;
 
                 highNybble = (byte)(Harmonics[count].EnvelopeNumber - 1);
@@ -1049,21 +1114,40 @@ namespace k5tool
                 {
                     highNybble = highNybble.SetBit(3);
                 }
+                System.Console.WriteLine("H{0} = {1:X2}", count + 1, highNybble);
+
                 count++;
 
                 b = Util.ByteFromNybbles(highNybble, lowNybble);
-                //System.Console.WriteLine(String.Format("{0:X2} {1:X2} => {2:X2}", highNybble, lowNybble, b));
+                //System.Console.WriteLine(String.Format("ToData: H{0} {1:X2} {2:X2} => {3:X2}", count + 1, highNybble, lowNybble, b));
                 buf.Add(b);
+
+                harmonicsBytes.Add(b);
             }
 
-            // harmonic 63
+            // harmonic 63 (count = 62) -- this is the problem
             b = (byte)(Harmonics[count].EnvelopeNumber - 1);
-            b = b.UnsetBit(2);
+            byte originalByte = b;
+            b = b.UnsetBit(3);
             if (Harmonics[count].IsModulationActive)
             {
                 b = b.SetBit(3);
             }
-            buf.Add(b);
+            System.Console.WriteLine("H{0} = {1:X2}", count + 1, b);
+            //System.Console.WriteLine(String.Format("ToData: H{0}: original byte = {1:X2}, final byte = {2:X2} (mod = {3})", count + 1, originalByte, b, Harmonics[count].IsModulationActive));
+            byte extraByte = (byte)(Harmonic63bis.EnvelopeNumber - 1);
+            if (Harmonic63bis.IsModulationActive)
+            {
+                extraByte = extraByte.SetBit(3);
+            }
+            byte finalByte = Util.ByteFromNybbles(b, extraByte);
+            buf.Add(finalByte);
+            //buf.Add(b);
+            harmonicsBytes.Add(b);
+
+            System.Console.WriteLine(String.Format("DHG levels data:\n{0}", Util.HexDump(harmonicsBytes.ToArray())));
+
+            System.Console.WriteLine(String.Format("Harmonic settings data:\n{0}", Util.HexDump(HarmonicSettings.ToData())));
 
             buf.AddRange(HarmonicSettings.ToData());
             buf.AddRange(Filter.ToData());

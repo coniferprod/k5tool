@@ -38,7 +38,7 @@ namespace k5tool
             StringBuilder builder = new StringBuilder();
 
             builder.Append("*KS CURVE*\n\n");
-            builder.Append(String.Format("LEFT={0,3}    B.POINT={1,3}    RIGHT={2,3}\n", Left, Right, Breakpoint));
+            builder.Append(String.Format("LEFT={0,3}    B.POINT={1,3}    RIGHT={2,3}\n", Left, Breakpoint, Right));
             builder.Append("\n\n");
 
             return builder.ToString();
@@ -118,6 +118,7 @@ namespace k5tool
         public LFO LFO;
         public bool IsFormantOn;  // true Digital Formant filter is on
         public byte[] FormantLevels;  // levels for bands C-1 ... C9 (0 ~ 63)
+        public byte Filler;  // retain the byte before the checksum (should be zero but not guaranteed)
 
         public Single(byte[] data)
         {
@@ -158,9 +159,7 @@ namespace k5tool
                 Breakpoint = 0
             };
 
-            Source1Settings = s1s;
-            Source2Settings = s2s;
-
+            // Assign the source settings later, when the keyscaling has been parsed.
             offset += 8;  // advance past the source settings
 
 	        // portamento and p. speed - S19
@@ -253,6 +252,12 @@ namespace k5tool
     	    (b, offset) = Util.GetNextByte(data, offset);
             s2s.KeyScaling.Breakpoint = b;
 
+            Source1Settings = s1s;
+            Source2Settings = s2s;
+
+            System.Console.WriteLine(String.Format("S1 keyscaling = {0}", Source1Settings.KeyScaling));
+            System.Console.WriteLine(String.Format("S2 keyscaling = {0}", Source2Settings.KeyScaling));
+
             // DFT (S479 ... S489)
             FormantLevels = new byte[FormantLevelCount];
             for (int i = 0; i < FormantLevelCount; i++)
@@ -268,6 +273,7 @@ namespace k5tool
 
             // S490 is unused (should be zero, but whatever), so eat it
         	(b, offset) = Util.GetNextByte(data, offset);
+            Filler = b;
 
             // Checksum (S491 ... S492)
         	(b, offset) = Util.GetNextByte(data, offset);
@@ -409,7 +415,7 @@ namespace k5tool
                 buf.Add(FormantLevels[i]);
             }
 
-            buf.Add(0);
+            buf.Add(Filler);
 
             int count = buf.Count;
             int checksum = ComputeChecksum(buf.GetRange(0, count).ToArray());
