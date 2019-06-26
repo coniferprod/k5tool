@@ -80,13 +80,17 @@ namespace k5tool
 			        continue;
 		        }
 
-                byte programNumber = GetProgramNumber(patchName);
-                if (header.Substatus2 != programNumber)
+                byte programNumber = 0;
+                if (command.Equals("extract"))
                 {
-                    continue;
-                }
+                    programNumber = GetProgramNumber(patchName);
+                    if (header.Substatus2 != programNumber)
+                    {
+                        continue;
+                    }
 
-                System.Console.WriteLine($"Extracting patch {patchName} (program {programNumber}). sub status 2 = {header.Substatus2}");
+                    System.Console.WriteLine($"Extracting patch {patchName} (program {programNumber}). sub status 2 = {header.Substatus2}");
+                }
 
                 System.Console.WriteLine(String.Format("==========\nProgram number = {0}, message length = {1}", header.Substatus2, message.Length));
                 //System.Console.WriteLine(Util.HexDump(message));
@@ -171,6 +175,37 @@ namespace k5tool
                     {
                         byte[] harmonicLevels = LeiterEngine.GetHarmonicLevels(waveformName, 63);
                         System.Console.WriteLine(String.Format("Harmonic levels for '{0}':\n{1}", waveformName, Util.HexDump(harmonicLevels)));
+                    }
+                }
+                else if (command.Equals("create"))
+                {
+                    int pn = GetProgramNumber("SIA-5");
+                    if (header.Substatus2 == pn)
+                    {
+                        // Modify the existing patch a little bit:
+                        s.Name = "FRANKENP";
+                        byte[] newHarmonics = LeiterEngine.GetHarmonicLevels("square", Source.HarmonicCount);
+                        for (int i = 0; i < Source.HarmonicCount; i++)
+                        {
+                            s.Source1.Harmonics[i].Level = newHarmonics[i];
+                            s.Source2.Harmonics[i].Level = newHarmonics[i];
+                        }
+                        s.Source1.Amplifier.EnvelopeSegments = Amplifier.Envelopes["regular"].Segments;
+                        s.Source2.Amplifier.EnvelopeSegments = Amplifier.Envelopes["regular"].Segments;
+
+                        int channel = 1;
+                        byte[] newHeader = new byte[] { 0xF0, 0x40, (byte)(channel - 1), 0x20, 0x00, 0x02, 0x00, 0x2F };
+                        List<byte> newData = new List<byte>();
+                        newData.AddRange(newHeader);
+                        newData.AddRange(Util.ConvertToTwoNybbleFormat(s.ToData()));
+                        newData.Add(0xf7);
+
+                        System.Console.WriteLine("Creating new patch, new SysEx data:\n{0}", Util.HexDump(newData.ToArray()));
+
+                        var folder = Environment.SpecialFolder.Desktop;
+                        var newFileName = Path.Combine(new string[] { Environment.GetFolderPath(folder), "Frankenpatch.syx" });
+                        System.Console.WriteLine($"Writing SysEx data to '{newFileName}'...");
+                        File.WriteAllBytes(newFileName, newData.ToArray());
                     }
                 }
             }
