@@ -128,7 +128,25 @@ namespace k5tool
         	return result;
         }
 
-                // From https://www.codeproject.com/Articles/36747/Quick-and-Dirty-HexDump-of-a-Byte-Array
+        public static byte[] ConvertToTwoNybbleFormat(byte[] data)
+        {
+            byte[] result = new byte[data.Length * 2];
+            int index = 0;
+            for (int i = 0; i < data.Length; i++)
+            {
+                byte highNybble = 0;
+                byte lowNybble = 0;
+                (highNybble, lowNybble) = NybblesFromByte(data[i]);
+                result[index] = highNybble;
+                index++;
+                result[index] = lowNybble;
+                index++;
+            }
+
+            return result;
+        }
+
+        // From https://www.codeproject.com/Articles/36747/Quick-and-Dirty-HexDump-of-a-Byte-Array
         public static string HexDump(byte[] bytes, int bytesPerLine = 16)
         {
             if (bytes == null) return "<null>";

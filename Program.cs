@@ -50,6 +50,11 @@ namespace k5tool
 
             string command = args[0];
             string fileName = args[1];
+            string patchName = "";
+            if (args.Length > 2)
+            {
+                patchName = args[2];
+            }
 
             byte[] fileData = File.ReadAllBytes(fileName);
             System.Console.WriteLine($"SysEx file: '{fileName}' ({fileData.Length} bytes)");
@@ -59,9 +64,6 @@ namespace k5tool
 
             foreach (byte[] message in messages)
             {
-                System.Console.WriteLine(String.Format("==========\nmessage length = {0}", message.Length));
-                //System.Console.WriteLine(Util.HexDump(message));
-
                 SystemExclusiveHeader header = GetSystemExclusiveHeader(message);
                 // TODO: Check the SysEx file header for validity
 
@@ -77,6 +79,17 @@ namespace k5tool
 			        //System.Console.WriteLine("Not a SINGLE dump, ignoring");
 			        continue;
 		        }
+
+                byte programNumber = GetProgramNumber(patchName);
+                if (header.Substatus2 != programNumber)
+                {
+                    continue;
+                }
+
+                System.Console.WriteLine($"Extracting patch {patchName} (program {programNumber}). sub status 2 = {header.Substatus2}");
+
+                System.Console.WriteLine(String.Format("==========\nProgram number = {0}, message length = {1}", header.Substatus2, message.Length));
+                //System.Console.WriteLine(Util.HexDump(message));
 
                 //System.Console.WriteLine("SysEx header: {0}", header);
                 //System.Console.WriteLine("Patch = {0}", GetPatchName(header.Substatus2));
@@ -131,6 +144,27 @@ namespace k5tool
                 {
                     System.Console.WriteLine(String.Format("{0} {1}", GetPatchName(header.Substatus2), s.Name));
                 }
+                else if (command.Equals("extract"))
+                {
+                    //System.Console.WriteLine(String.Format("SIA-1 = {0}", GetProgramNumber("SIA-1")));
+                    //System.Console.WriteLine(String.Format("SIC-6 = {0}", GetProgramNumber("SIC-6")));
+                    //System.Console.WriteLine(String.Format("SID-12 = {0}", GetProgramNumber("SID-12")));
+
+                    int channel = 1;
+                    byte[] newHeader = new byte[] { 0xF0, 0x40, (byte)(channel - 1), 0x20, 0x00, 0x02, 0x00, programNumber };
+
+                    List<byte> newData = new List<byte>();
+                    newData.AddRange(newHeader);
+                    newData.AddRange(Util.ConvertToTwoNybbleFormat(s.ToData()));
+                    newData.Add(0xf7);
+
+                    System.Console.WriteLine("Extracting {0}, new SysEx data:\n{1}", patchName, Util.HexDump(newData.ToArray()));
+
+                    var folder = Environment.SpecialFolder.Desktop;
+                    var newFileName = Path.Combine(new string[] { Environment.GetFolderPath(folder), $"{s.Name.Trim()}.syx" });
+                    System.Console.WriteLine($"Writing SysEx data to '{newFileName}'...");
+                    File.WriteAllBytes(newFileName, newData.ToArray());
+                }
             }
 
             return 0;
@@ -143,6 +177,18 @@ namespace k5tool
 	        int patchIndex = (p % patchCount) + 1;
 
 	        return String.Format("{0}-{1,2}", bankLetter, patchIndex);
+        }
+
+        // Expects the usual Kawai K5 patch names from "SIA-1" to "SID-12".
+        // S = Single, I = Internal, ABCD = Bank, 1...12 = number in bank
+        public static byte GetProgramNumber(string patchName)
+        {
+            // Right now we only care about internal, single banks, so assume S and I.
+            char bankName = patchName[2];
+            string patchNumberString = patchName.Substring(4);
+            int patchNumber = Int32.Parse(patchNumberString);
+            int bankNumber = "ABCD".IndexOf(bankName);
+            return (byte)((bankNumber * 12 + patchNumber) - 1);
         }
     }
 }
