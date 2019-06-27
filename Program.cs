@@ -184,7 +184,7 @@ namespace k5tool
                     {
                         // Modify the existing patch a little bit:
                         s.Name = "FRANKENP";
-                        byte[] newHarmonics = LeiterEngine.GetHarmonicLevels("square", Source.HarmonicCount);
+                        byte[] newHarmonics = LeiterEngine.GetHarmonicLevels("saw", Source.HarmonicCount);
                         for (int i = 0; i < Source.HarmonicCount; i++)
                         {
                             s.Source1.Harmonics[i].Level = newHarmonics[i];
