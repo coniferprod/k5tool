@@ -191,7 +191,7 @@ namespace k5tool
                             s.Source2.Harmonics[i].Level = newHarmonics[i];
                         }
                         s.Source1.Amplifier.EnvelopeSegments = Amplifier.Envelopes["regular"].Segments;
-                        s.Source2.Amplifier.EnvelopeSegments = Amplifier.Envelopes["regular"].Segments;
+                        s.Source2.Amplifier.EnvelopeSegments = Amplifier.Envelopes["silent"].Segments;
 
                         int channel = 1;
                         byte[] newHeader = new byte[] { 0xF0, 0x40, (byte)(channel - 1), 0x20, 0x00, 0x02, 0x00, 0x2F };

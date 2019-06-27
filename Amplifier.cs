@@ -21,17 +21,33 @@ namespace k5tool
     {
         public static readonly Dictionary<string, AmplifierEnvelope> Envelopes = new Dictionary<string, AmplifierEnvelope>
         {
-            { "regular", new AmplifierEnvelope
+            {
+                "regular", new AmplifierEnvelope
                 { 
                     Segments = new AmplifierEnvelopeSegment[]
                     {
                         new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = true, Level = 25 },
-                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 21, IsMaxSegment = true, Level = 27 },
-                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 28, IsMaxSegment = true, Level = 0 },
-                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = true, Level = 0 },
-                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 30, IsMaxSegment = true, Level = 0 },
-                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = true, Level = 0 },
-                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = true, Level = 0 }
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 21, IsMaxSegment = false, Level = 27 },
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 28, IsMaxSegment = false, Level = 0 },
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = false, Level = 0 },
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 30, IsMaxSegment = false, Level = 0 },
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = false, Level = 0 },
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = false, Level = 0 }
+                    }
+                }
+            },
+            {
+                "silent", new AmplifierEnvelope
+                {
+                    Segments = new AmplifierEnvelopeSegment[]
+                    {
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = false, Level = 0 },
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = false, Level = 0 },
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = false, Level = 0 },
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = false, Level = 0 },
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = false, Level = 0 },
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = false, Level = 0 },
+                        new AmplifierEnvelopeSegment { IsRateModulationOn = true, Rate = 0, IsMaxSegment = false, Level = 0 }
                     }
                 }
             }
@@ -75,14 +91,14 @@ namespace k5tool
             builder.Append("\n    LEVEL|");
             for (int i = 0; i < Source.AmplifierEnvelopeSegmentCount; i++)
             {
-                string levelString = EnvelopeSegments[i].IsMaxSegment ? "  *" : String.Format("{0,3}", EnvelopeSegments[i].Level);
+                string levelString = String.Format("{0,3}{1}", EnvelopeSegments[i].Level, EnvelopeSegments[i].IsMaxSegment ? "*" : " ");
                 builder.Append(String.Format("{0}|", levelString));
             }
             builder.Append("\n    RTMOD|");
             for (int i = 0; i < Source.AmplifierEnvelopeSegmentCount; i++)
             {
                 string rateModulationString = EnvelopeSegments[i].IsRateModulationOn ? " ON" : " --";
-                builder.Append(String.Format("{0}|", rateModulationString));
+                builder.Append(String.Format("{0} |", rateModulationString));
             }
 
             builder.Append($"\n    MAX SEG = ?   (seg1level={EnvelopeSegments[0].Level})\n\n");
