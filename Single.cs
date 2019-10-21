@@ -100,7 +100,7 @@ namespace k5tool
         }
     }
     
-    public class Single
+    public class Single: Patch
     {
         const int FormantLevelCount = 11;
 

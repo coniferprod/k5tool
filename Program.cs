@@ -9,6 +9,8 @@ namespace k5tool
 {
     public struct SystemExclusiveHeader
     {
+        public const int DataSize = 7;
+
         public byte ManufacturerID;
 	    public byte Channel;
 	    public byte Function;
@@ -23,6 +25,22 @@ namespace k5tool
         }
     }
 
+    public enum ExclusiveFunction
+    {
+        OneBlockDataRequest = 0x00,
+        AllBlockDataRequest = 0x01,
+        ParameterSend = 0x10,
+        OneBlockDataDump = 0x20,
+        AllBlockDataDump = 0x21,
+        ProgramSend = 0x30,
+        WriteComplete = 0x40,
+        WriteError = 0x41,
+        WriteErrorProtect = 0x42,
+        WriteErrorNoCard = 0x43,
+        MachineIDRequest = 0x60,
+        MachineIDAcknowledge = 0x61
+    }
+
     [Verb("create", HelpText = "Create new patch or bank.")]
     class CreateOptions
     {
@@ -32,6 +50,20 @@ namespace k5tool
 
     [Verb("list", HelpText = "List contents of patch or bank.")]
     public class ListOptions
+    {
+        [Value(0, MetaName = "input file", HelpText = "Input file to be processed.", Required = true)]
+        public string FileName { get; set; }
+    }
+
+    [Verb("generate", HelpText = "Generate harmonic levels for a waveform.")]
+    public class GenerateOptions
+    {
+        [Value(0, MetaName = "waveform", HelpText = "Name of waveform to generate.", Required = true)]
+        public string WaveformName { get; set; }
+    }
+
+    [Verb("dump", HelpText = "Dump information about a patch.")]
+    public class DumpOptions
     {
         [Value(0, MetaName = "input file", HelpText = "Input file to be processed.", Required = true)]
         public string FileName { get; set; }
@@ -56,18 +88,14 @@ namespace k5tool
         }
         static int Main(string[] args)
         {
-            var parserResult = Parser.Default.ParseArguments<CreateOptions, ListOptions>(args);
+            var parserResult = Parser.Default.ParseArguments<CreateOptions, GenerateOptions, DumpOptions>(args);
             parserResult.MapResult(
                 (CreateOptions opts) => RunCreateAndReturnExitCode(opts),
-                (ListOptions opts) => RunListAndReturnExitCode(opts),
+                (GenerateOptions opts) => RunGenerateAndReturnExitCode(opts),
+                (DumpOptions opts) => RunDumpAndReturnExitCode(opts),
                 errs => 1
             );
 
-            if (args.Length < 2)
-            {
-                System.Console.WriteLine("Usage: k5tool cmd filename.syx");
-                return 1;
-            }
 
             string command = args[0];
             string fileName = args[1];
@@ -89,7 +117,7 @@ namespace k5tool
                 // TODO: Check the SysEx file header for validity
 
                 // Process only "one block data dump" type messages for now
-		        if (header.Function != 0x20) 
+		        if (header.Function != (int)ExclusiveFunction.OneBlockDataDump) 
                 {
 			        //System.Console.WriteLine("Not a one block data dump (function 20H), ignoring");
         			continue;
@@ -165,10 +193,6 @@ namespace k5tool
                     string output = JsonConvert.SerializeObject(s, Formatting.Indented);
                     System.Console.WriteLine(String.Format("Single patch as JSON:\n{0}", output));
                 }
-                else if (command.Equals("list"))
-                {
-                    System.Console.WriteLine(String.Format("{0} {1}", GetPatchName(header.Substatus2), s.Name));
-                }
                 else if (command.Equals("extract"))
                 {
                     //System.Console.WriteLine(String.Format("SIA-1 = {0}", GetProgramNumber("SIA-1")));
@@ -189,14 +213,6 @@ namespace k5tool
                     var newFileName = Path.Combine(new string[] { Environment.GetFolderPath(folder), $"{s.Name.Trim()}.syx" });
                     System.Console.WriteLine($"Writing SysEx data to '{newFileName}'...");
                     File.WriteAllBytes(newFileName, newData.ToArray());
-                }
-                else if (command.Equals("generate"))
-                {
-                    foreach (string waveformName in LeiterEngine.WaveformParameters.Keys)
-                    {
-                        byte[] harmonicLevels = LeiterEngine.GetHarmonicLevels(waveformName, 63);
-                        System.Console.WriteLine(String.Format("Harmonic levels for '{0}':\n{1}", waveformName, Util.HexDump(harmonicLevels)));
-                    }
                 }
                 else if (command.Equals("create"))
                 {
@@ -239,14 +255,32 @@ namespace k5tool
             return 0;
         }
 
-        public static int RunListAndReturnExitCode(ListOptions opts)
+        public static int RunGenerateAndReturnExitCode(GenerateOptions opts)
+        {
+            //string waveformName = opts.WaveformName;
+            foreach (string waveformName in LeiterEngine.WaveformParameters.Keys)
+            {
+                byte[] harmonicLevels = LeiterEngine.GetHarmonicLevels(waveformName, 63);
+                System.Console.WriteLine(String.Format("Harmonic levels for '{0}':\n{1}", waveformName, Util.HexDump(harmonicLevels)));
+            }
+
+            return 0;
+        }
+
+        public static int RunDumpAndReturnExitCode(DumpOptions opts)
         {
             string fileName = opts.FileName;
             byte[] fileData = File.ReadAllBytes(fileName);
             System.Console.WriteLine($"SysEx file: '{fileName}' ({fileData.Length} bytes)");
 
-            List<byte[]> messages = Util.SplitBytesByDelimiter(fileData, 0xf7);
-            System.Console.WriteLine($"Got {messages.Count} messages");
+            // Extract the patch bytes (discarding the SysEx header)
+            int dataLength = fileData.Length - SystemExclusiveHeaderLength;
+            byte[] rawData = new byte[dataLength];
+            Array.Copy(fileData, SystemExclusiveHeaderLength, rawData, 0, dataLength);
+            byte[] data = Util.ConvertFromTwoNybbleFormat(rawData);
+
+            Single s = new Single(data);
+            System.Console.WriteLine(s.ToString());
 
             return 0;
         }

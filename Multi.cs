@@ -8,14 +8,22 @@ namespace k5tool
         BankD
     }
 
-    public struct Track
+    public class Track
     {
-        public BankName Bank;
-        public byte PatchNumber;
+        public BankName Bank;  // 0/A, 1/B, 2/C, 3/D
+        public int Number;
 
     }
-    public struct Multi
+
+    public class Multi: Patch
     {
+        public const int NumTracks = 16;
+
         public Track[] Tracks;
+
+        public Multi()
+        {
+            Tracks = new Track[NumTracks];
+        }
     }    
 }
