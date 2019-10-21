@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 
 using Newtonsoft.Json;
-
+using CommandLine;
 
 namespace k5tool
 {
@@ -21,6 +21,20 @@ namespace k5tool
         {
             return String.Format("ManufacturerID = {0,2:X2}H, Channel = {1}, Function = {2,2:X2}H, Group = {3,2:X2}H, MachineID = {4,2:X2}H, Substatus1 = {5,2:X2}H, Substatus2 = {6,2:X2}H", ManufacturerID, Channel, Function, Group, MachineID, Substatus1, Substatus2);
         }
+    }
+
+    [Verb("create", HelpText = "Create new patch or bank.")]
+    class CreateOptions
+    {
+        [Value(0, MetaName = "type", HelpText = "Patch type: single or multi.")]
+        public string Type { get; set; }
+    }
+
+    [Verb("list", HelpText = "List contents of patch or bank.")]
+    public class ListOptions
+    {
+        [Value(0, MetaName = "input file", HelpText = "Input file to be processed.", Required = true)]
+        public string FileName { get; set; }
     }
 
     class Program
@@ -42,6 +56,13 @@ namespace k5tool
         }
         static int Main(string[] args)
         {
+            var parserResult = Parser.Default.ParseArguments<CreateOptions, ListOptions>(args);
+            parserResult.MapResult(
+                (CreateOptions opts) => RunCreateAndReturnExitCode(opts),
+                (ListOptions opts) => RunListAndReturnExitCode(opts),
+                errs => 1
+            );
+
             if (args.Length < 2)
             {
                 System.Console.WriteLine("Usage: k5tool cmd filename.syx");
@@ -209,6 +230,23 @@ namespace k5tool
                     }
                 }
             }
+
+            return 0;
+        }
+
+        public static int RunCreateAndReturnExitCode(CreateOptions opts)
+        {
+            return 0;
+        }
+
+        public static int RunListAndReturnExitCode(ListOptions opts)
+        {
+            string fileName = opts.FileName;
+            byte[] fileData = File.ReadAllBytes(fileName);
+            System.Console.WriteLine($"SysEx file: '{fileName}' ({fileData.Length} bytes)");
+
+            List<byte[]> messages = Util.SplitBytesByDelimiter(fileData, 0xf7);
+            System.Console.WriteLine($"Got {messages.Count} messages");
 
             return 0;
         }
