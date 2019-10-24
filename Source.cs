@@ -65,7 +65,7 @@ namespace k5tool
     }
     
 
-    public struct PitchSettings
+    public class PitchSettings
     {
         public sbyte Coarse; // 0~±48
         public sbyte Fine; // 0~±31
@@ -168,6 +168,16 @@ namespace k5tool
         public Amplifier Amplifier;
 
         public int SourceNumber;
+
+        public Source()
+        {
+            Pitch = new PitchSettings();
+            Harmonics = new Harmonic[HarmonicCount];
+            Harmonic63bis = new Harmonic();
+            HarmonicSettings = new HarmonicSettings();
+            Filter = new Filter();
+            Amplifier = new Amplifier();
+        }
 
         public Source(byte[] data, int number)
         {

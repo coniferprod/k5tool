@@ -70,7 +70,7 @@ namespace k5tool
         InverseSawtooth
     }
 
-    public struct LFO
+    public class LFO
     {
         public LFOShape Shape;
         public byte Speed;  // 0~99
@@ -122,6 +122,16 @@ namespace k5tool
         // Used int[] and not byte[] to get the correct JSON serialization
 
         public byte Filler;  // retain the byte before the checksum (should be zero but not guaranteed)
+
+        public Single()
+        {
+            Source1Settings = new SourceSettings();
+            Source2Settings = new SourceSettings();
+            Source1 = new Source();
+            Source2 = new Source();
+            LFO = new LFO();
+            FormantLevels = new int[FormantLevelCount];
+        }
 
         public Single(byte[] data)
         {
