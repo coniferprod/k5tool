@@ -5,42 +5,11 @@ using System.IO;
 using Newtonsoft.Json;
 using CommandLine;
 
+using KSynthLib.Common;
+using KSynthLib.K5;
+
 namespace k5tool
 {
-    public struct SystemExclusiveHeader
-    {
-        public const int DataSize = 7;
-
-        public byte ManufacturerID;
-	    public byte Channel;
-	    public byte Function;
-	    public byte Group;
-	    public byte MachineID;
-	    public byte Substatus1;
-	    public byte Substatus2;
-
-        public override string ToString()
-        {
-            return String.Format("ManufacturerID = {0,2:X2}H, Channel = {1}, Function = {2,2:X2}H, Group = {3,2:X2}H, MachineID = {4,2:X2}H, Substatus1 = {5,2:X2}H, Substatus2 = {6,2:X2}H", ManufacturerID, Channel, Function, Group, MachineID, Substatus1, Substatus2);
-        }
-    }
-
-    public enum SystemExclusiveFunction
-    {
-        OneBlockDataRequest = 0x00,
-        AllBlockDataRequest = 0x01,
-        ParameterSend = 0x10,
-        OneBlockDataDump = 0x20,
-        AllBlockDataDump = 0x21,
-        ProgramSend = 0x30,
-        WriteComplete = 0x40,
-        WriteError = 0x41,
-        WriteErrorProtect = 0x42,
-        WriteErrorNoCard = 0x43,
-        MachineIDRequest = 0x60,
-        MachineIDAcknowledge = 0x61
-    }
-
     [Verb("create", HelpText = "Create new patch or bank.")]
     class CreateOptions
     {
@@ -87,27 +56,8 @@ namespace k5tool
 
     class Program
     {
-        static SystemExclusiveHeader GetSystemExclusiveHeader(byte[] data)
-        {
-            SystemExclusiveHeader header;
-            // data[0] is the SysEx identifier F0H
-            header.ManufacturerID = data[1];
-            header.Channel = data[2];
-		    header.Function = data[3];
-		    header.Group = data[4];
-		    header.MachineID = data[5];
-		    header.Substatus1 = data[6];
-		    header.Substatus2 = data[7];
-            return header;
-        }
-
         static int Main(string[] args)
         {
-            for (int i = 0; i < 48; i++)
-            {
-                Console.WriteLine(GetProgramName(i));
-            }
-
             var parserResult = Parser.Default.ParseArguments<CreateOptions, GenerateOptions, DumpOptions, ExtractOptions>(args);
             parserResult.MapResult(
                 (CreateOptions opts) => RunCreateAndReturnExitCode(opts),
@@ -134,7 +84,7 @@ namespace k5tool
             //byte[] data = ExtractPatchData(message);
             //Single s = new Single(data);
 
-            Single s = new Single();
+            SinglePatch s = new SinglePatch();
             s.Name = "FRANKENP";
 
             byte[] newHarmonics = LeiterEngine.GetHarmonicLevels("saw", Source.HarmonicCount);
@@ -182,7 +132,7 @@ namespace k5tool
 
             foreach (byte[] message in messages)
             {
-                SystemExclusiveHeader header = GetSystemExclusiveHeader(message);
+                SystemExclusiveHeader header = new SystemExclusiveHeader(message);
 
                 if (header.Substatus2 != programNumber)
                 {
@@ -192,7 +142,7 @@ namespace k5tool
                 byte[] rawData = ExtractPatchData(message);
                 byte[] data = Util.ConvertFromTwoNybbleFormat(rawData);
 
-                Single s = new Single(data);
+                SinglePatch s = new SinglePatch(data);
 
                 int channel = opts.Channel - 1;  // adjust channel 1...16 to range 0...15
                 byte[] newHeader = new byte[] { 0xF0, 0x40, (byte)(channel - 1), 0x20, 0x00, 0x02, 0x00, (byte)programNumber };
@@ -237,7 +187,7 @@ namespace k5tool
                 byte[] rawData = ExtractPatchData(message);
                 byte[] data = Util.ConvertFromTwoNybbleFormat(rawData);
 
-                SystemExclusiveHeader header = GetSystemExclusiveHeader(message);
+                SystemExclusiveHeader header = new SystemExclusiveHeader(message);
                 Console.WriteLine(header);
                 // TODO: Check the SysEx file header for validity
 
@@ -263,21 +213,12 @@ namespace k5tool
                 string programName = GetProgramName(programNumber);
                 Console.WriteLine(String.Format("{0} {1}", programType, programName));
 
-                Single s = new Single(data);
+                SinglePatch s = new SinglePatch(data);
                 System.Console.WriteLine(s.ToString());
 
             }
 
             return 0;
-        }
-
-        public static string GetPatchName(byte p, int patchCount = 12)
-        {
-        	int bankIndex = p / patchCount;
-	        char bankLetter = "ABCD"[bankIndex];
-	        int patchIndex = (p % patchCount) + 1;
-
-	        return String.Format("{0}-{1,2}", bankLetter, patchIndex);
         }
 
         // Expects the usual Kawai K5 patch names from "SIA-1" to "SID-12".
