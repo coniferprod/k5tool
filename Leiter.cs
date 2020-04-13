@@ -48,12 +48,12 @@ namespace k5tool
             return module1 * module2 * module3;
         }
 
-        public static int GetHarmonicLevel(int harmonicNumber, LeiterParameters para) 
+        public static int GetHarmonicLevel(int harmonicNumber, LeiterParameters para, int maxLevel = 99) 
         {
             double aMax = 1.0;
             double a = LeiterEngine.Compute(harmonicNumber, para);
             double v = Math.Log(Math.Abs(a / aMax));
-            double level = 99.0 + 8.0 * v;
+            double level = ((double) maxLevel) + 8.0 * v;
             System.Console.WriteLine(String.Format("DEBUG: n = {0}, a = {1}, v = {2}", harmonicNumber, a, v));
             if (level < 0)
             {
